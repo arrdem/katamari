@@ -17,6 +17,6 @@ FIXME
 
 ## License
 
-Copyright (C) 2018 Reid "arrdem" McKenzie
+Copyright © 2018 Reid "arrdem" McKenzie
 
 Distributed under the [Eclipse Public License](/LICENSE) either version 1.0 or (at your option) any later version.
