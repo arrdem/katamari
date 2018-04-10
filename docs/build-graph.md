@@ -22,24 +22,7 @@ Most don't at all, which makes the "simple" thing while correct often quite inef
 By introducing a concrete concept of products and their dependency graph, the various Google Blaze derivatives all nicely sidestep this issue.
 Products are cached and need not be re-computed until they become invalidated by some change in the state of the system.
 
-Consider a product defined by `javac` over some set of source files, some options such as the target JVM version and some dependencies.
-If we've never built for that combination before, we have to do so.
-If we're building again and already have that build parameter combination lying around, then our build tool can just hit in a cache, assuming the build is repeatable and the cache is good.
-However if one of the build inputs changed - say a source file was edited or a build parameter like the target JVM version was changed, then we have to do a new build.
-
-There's plenty of room for refinement here.
-Good 'ol GNU Make uses file change timestamps as the metric of whether a build product is "up to date".
-This has some significant limitations, especially when using a version control system like git which can cause files to time travel.
-The goal of Katamari and incremental build systems generally is to trade build artifact cache size on disk for rebuild rapidity wherever possible.
-Using file timestamps is a poor heuristic in this regard, because it means that one throws away the build cache when simply changing branches.
-
-Content-hashing (sha512sum or equivalent) is the minimum acceptable content identifier, in that the content identifiers are reasonably unique and repeatable across branch changes.
-A design goal is to be pluggable with respect to content hashing algorithms.
-In a C file for instance, whitespace changes and comment changes don't* affect the interpretation of the source files by the compiler - consequently one could imagine writing a domain specific content hash operation which considers only the hash of non-lexical-whitespace in the file.
-Likewise for Lisp code, comments and whitespace are discarded.
-One could imagine content hashing the s-expression structure of the file to produce an identifier - or having a two step content hashing operation where straight file hashes are used to cache more precise content hashes.
-
-To circle back to our initial example - in Blaze/Buck/Pants, one could write a build descriptor file for such an artifact along these lines (these systems use Python for their configuration DSL)
+In Blaze/Buck/Pants, one could write a build descriptor file for such an artifact along these lines (these systems use Python for their configuration DSL)
 
 ```python
 # The resource files for the build
@@ -104,4 +87,23 @@ java_binary(
 )
 ```
 
+Consider the `java_library` product.
+It's results are defined by `javac` over some set of source files, some options such as the target JVM version and some dependencies.
+If we've never built for that combination before, we have to do so.
+If we're building again and already have that build parameter combination lying around, then our build tool can just hit in a cache, assuming the build is repeatable and the cache is good.
+However if one of the build inputs changed - say a source file was edited or a build parameter like the target JVM version was changed, then we have to do a new build.
+
+There's plenty of room for refinement here.
+Good 'ol GNU Make uses file change timestamps as the metric of whether a build product is "up to date".
+This has some significant limitations, especially when using a version control system like git which can cause files to time travel.
+The goal of Katamari and incremental build systems generally is to trade build artifact cache size on disk for rebuild rapidity wherever possible.
+Using file timestamps is a poor heuristic in this regard, because it means that one throws away the build cache when simply changing branches.
+
+Content-hashing (sha512sum or equivalent) is the minimum acceptable content identifier, in that the content identifiers are reasonably unique and repeatable across branch changes.
+A design goal is to be pluggable with respect to content hashing algorithms.
+In a C file for instance, whitespace changes and comment changes don't* affect the interpretation of the source files by the compiler - consequently one could imagine writing a domain specific content hash operation which considers only the hash of non-lexical-whitespace in the file.
+Likewise for Lisp code, comments and whitespace are discarded.
+One could imagine content hashing the s-expression structure of the file to produce an identifier - or having a two step content hashing operation where straight file hashes are used to cache more precise content hashes.
+
 The precise build DSL which Katamari uses is up in the air, but it will be full blown Clojure, with targets and products registered as datastructures into a graph.
+Content hashing of the Katakari `Rollfiles` themselves allows for lazy re-analysis of the build graph, and the build graph itself defines its own invalidation conditions.
