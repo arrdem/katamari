@@ -29,25 +29,12 @@ As these tools are institutional, they're thinly documented at best.
 All their primary customers are internal, and cultivating an external user base is nobody's priority.
 
 Many build tasks are honestly pretty trivial, and just get re-computed because it's more engineering effort than it's worth to write special purpose change detection machinery.
-The hope of Katamari is that, by maintaining an eternal product cache and providing tools for content addressing build products, significant wins just wrapping existing tools.
-
-## Architecture
-
-Katamari is a two part system, consisting of a build server and a CLI client / launcher.
-The client simply provides a shim for locating the server, and calling into it to provide task execution.
-
-The server is a persistent JVM process used to amortize JVM startup costs and build graph analysis across multiple task invocations.
-
-Katamari consumes `Rollfile`s, which provide definitions of build targets, target types and build plugins.
-
-When the CLI client is invoked, it sends the current working directory and arguments to the server.
-The server provides all task parsing, `Rollfile` location, and task execution.
-
-For debugging, the server provides an embedded nREPL server.
+The hope of Katamari is that, by "firing your customers" the size of the problem domain can be meaningfully constrained and a simple system with adequate performance can be produced just by leveraging content addressing of build products.
 
 ## Documentation
 
-- [Index](/docs/index.md)
+- [System Architecture](/docs/system-architecture.md)
+- [Build Graph & Targets](/docs/build-graph.md)
 
 ## License
 
