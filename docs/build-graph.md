@@ -99,7 +99,7 @@ This has some significant limitations, especially when using a version control s
 The goal of Katamari and incremental build systems generally is to trade build artifact cache size on disk for rebuild rapidity wherever possible.
 Using file timestamps is a poor heuristic in this regard, because it means that one throws away the build cache when simply changing branches.
 
-Content-hashing (sha512sum or equivalent) is the minimum acceptable content identifier, in that the content identifiers are reasonably unique and repeatable across branch changes.
+Content-hashing (sha512sum or equivalent ([hasch](https://github.com/replikativ/hasch))) is the minimum acceptable content identifier, in that the content identifiers are reasonably unique and repeatable across branch changes.
 A design goal is to be pluggable with respect to content hashing algorithms.
 In a C file for instance, whitespace changes and comment changes don't* affect the interpretation of the source files by the compiler - consequently one could imagine writing a domain specific content hash operation which considers only the hash of non-lexical-whitespace in the file.
 Likewise for Lisp code, comments and whitespace are discarded.
