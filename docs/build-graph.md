@@ -1,7 +1,7 @@
 # Build Graph & Targets
 [⛓ README](/README.md)
 
-At its most basic, the Katamari build model consists of "tasks," "targets" and "products".
+At its most basic, the Katamari build model consists of "tasks," "targets" and "products."
 A **product** is just a fancy term for one or more files.
 Products are produced by **tasks**, which should be pure functions from products and other configuration to products.
 Products are anonymous by default, but may be given names.
