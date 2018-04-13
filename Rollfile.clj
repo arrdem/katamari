@@ -6,24 +6,30 @@
 (require '[katamari.core :as kat])
 
 (defn contrib-style-clojure-library [build name options]
-  (kat/clojure-library build name
-     (-> options
-         (update-in :base :paths (fnil into [])
-                    [(str name "/src/main/clj")
-                     (str name "/src/main/cljc")
-                     (str name "/src/main/resources")])
-         (update-in :dev :paths (fnil into [])
-                    [(str name "/src/dev/clj")
-                     (str name "/src/dev/cljc")
-                     (str name "/src/dev/resources")])
-         (update-in :test :paths (fnil into [])
-                    [(str name "/src/test/clj")
-                     (str name "/src/test/cljc")
-                     (str name "/src/test/resources")]))))
+  (-> build
+      ;; The library itself
+      (kat/clojure-library name
+        (-> options
+            (update-in [:base :source-paths] (fnil into [])
+                       [(str name "/src/main/clj")
+                        (str name "/src/main/cljc")])
+            (update-in [:base :resource-paths] (fnil into [])
+                       [(str name "/src/main/resources")])
+            (update-in [:dev :source-paths] (fnil into [])
+                       [(str name "/src/dev/clj")
+                        (str name "/src/dev/cljc")])
+            (update-in [:dev :resource-paths] (fnil into [])
+                       [(str name "/src/dev/resources")])))
+      ;; Automatic test target
+      (kat/clojure-tests (symbol (namespace name) (str (clojure.core/name name) "+tests"))
+         {:base {:source-paths [(str name "/src/test/clj")
+                                (str name "/src/test/cljc")]
+                 :resource-paths [(str name "/src/test/resources")]}})))
 
-(-> (kat/empty-build)
+(-> (kat/default-build)
     (kat/load-profiles "/etc/katamari.edn")
-    (kat/load-profiles "~/.katamari/profiles.edn")
+    (kat/load-profiles (str (System/getProperty "user.home")
+                            "/.katamari/profiles.edn"))
 
     ;; Make dependencies available as targets
     (kat/mvn-dep '[org.clojure/clojure "1.9.0"])
