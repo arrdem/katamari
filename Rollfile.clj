@@ -1,4 +1,6 @@
-{;; Profiles are maps from target types to options.
+{;; Profiles are a mechanism for providing configuration both of targets and tasks.
+ ;; Profiles are either maps of profile data, or a sequence containing either keywords naming other
+ ;; profiles to apply or maps of profile data.
  :profiles
  {;; The default profile stack which Katamari attempts to apply.
   ;; FIXME: How does profile de-activation work? Does it work? Do we need it?
