@@ -35,14 +35,14 @@
 
     ;; Clojure libraries
     (contrib-style-clojure-library katamari-core
-      {:dependencies [org.clojure/clojure
-                      org.clojure/specs.alpha
-                      org.clojure/tools.deps.alpha
-                      io.replikativ/hasch]})
+      '{:dependencies [org.clojure/clojure
+                       org.clojure/specs.alpha
+                       org.clojure/tools.deps.alpha
+                       io.replikativ/hasch]})
 
     (contrib-style-clojure-library katamari-server
-      {:dependencies [katamari-core
-                      org.clojure/tools.nrepl]})
+      '{:dependencies [katamari-core
+                       org.clojure/tools.nrepl]})
 
     ;; Roll everything up for easy deployment
     (kat/mvn-artifact 'me.arrdem/katamari
