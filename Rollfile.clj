@@ -34,13 +34,13 @@
     (kat/mvn-dep '[io.replikativ/hasch "0.3.4"])
 
     ;; Clojure libraries
-    (contrib-style-clojure-library katamari-core
+    (contrib-style-clojure-library 'katamari-core
       '{:dependencies [org.clojure/clojure
                        org.clojure/specs.alpha
                        org.clojure/tools.deps.alpha
                        io.replikativ/hasch]})
 
-    (contrib-style-clojure-library katamari-server
+    (contrib-style-clojure-library 'katamari-server
       '{:dependencies [katamari-core
                        org.clojure/tools.nrepl]})
 
