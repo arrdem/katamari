@@ -157,5 +157,6 @@
 
   katamari
   [:clojure-library
-   {:dependencies #{katamari-core
-                    katamari-server}}]}}
+   {:base
+    {:dependencies [katamari-core
+                    katamari-server]}}]}}
