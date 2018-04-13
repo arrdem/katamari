@@ -1,10 +1,13 @@
 (defproject me.arrdem/katamari "_"
-  :description "FIXME"
+  :description "Roll your software up into artifacts!"
   :url "http://github.com/arrdem/katamari"
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :dependencies [[org.clojure/clojure "1.9.0"]]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.clojure/spec.alpha "0.1.143"]
+                 [org.clojure/tools.deps.alpha "0.5.417"]
+                 [io.replikativ/hasch "0.3.4"]]
 
   :source-paths      ["src/main/clj"
                       "src/main/cljc"]
@@ -39,7 +42,9 @@
          (let [[_ prefix patch] (re-find #"(\d+\.\d+)\.(\d+)" tag)
                patch            (Long/parseLong patch)
                patch+           (inc patch)]
-           (format "%s.%d-%s-SNAPSHOT" prefix patch+ branch))
+           (if (not= branch "master")
+             (format "%s.%d-%s-SNAPSHOT" prefix patch+ branch)
+             (format "%s.%d-SNAPSHOT" prefix patch+)))
          "0.1.0-SNAPSHOT")))}
 
   :auto
