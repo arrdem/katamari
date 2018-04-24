@@ -1,11 +1,14 @@
 # Build Graph & Targets
 [⛓ README](/README.md)
 
-At its most basic, the Katamari build model consists of "tasks," "targets" and "products."
-A **product** is just a fancy term for one or more files.
-Products are produced by **tasks**, which should be pure functions from products and other configuration to products.
-Products are anonymous by default, but may be given names.
-Named products are called **targets**.
+At its most basic, the Katamari build model consists of "tasks", "targets", "steps" and "products".
+A **product** is just a fancy term for one or more files, or configuration data.
+Products are produced by **steps**, which should be pure functions from products and other configuration to products.
+Named steps are called **targets**.
+Because **targets** are referentially transparent, it may also be said that a **target** names a **product**.
+
+**tasks** may be thought of as terminal **steps**, especially steps which don't produce a **product**.
+Running a test suite for instance, a read-eval-print-loop or an application instance would all be good examples of a task.
 
 Lets take an example:
 I want to automate the build for a Clojure application.
@@ -33,7 +36,7 @@ java_resources(
 
 # A Maven dependency, providing the "clojure" target
 maven_dependency(
-  name="clojure", 
+  name="clojure",
   mvn_group="org.clojure",
   mvn_artifact="clojure",
   mvn_version="1.6.0",
@@ -42,7 +45,7 @@ maven_dependency(
 )
 
 maven_dependency(
-  name="kafka", 
+  name="kafka",
   mvn_group="org.apache.kafka",
   mvn_artifact="kafka_2.11",
   mvn_version="...",
@@ -83,7 +86,7 @@ shell_command(
 java_binary(
   name="foo",
   entry_point="foo.main",
-  dependencies=["foo-core"], 
+  dependencies=["foo-core"],
 )
 ```
 

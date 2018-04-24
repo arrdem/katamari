@@ -27,9 +27,6 @@
                  :resource-paths [(str name "/src/test/resources")]}})))
 
 (-> (kat/default-build)
-    (kat/load-profiles "/etc/katamari.edn")
-    (kat/load-profiles (str (System/getProperty "user.home")
-                            "/.katamari/profiles.edn"))
 
     ;; Make dependencies available as targets
     (kat/mvn-dep '[org.clojure/clojure "1.9.0"])
@@ -41,10 +38,11 @@
 
     ;; Clojure libraries
     (contrib-style-clojure-library 'katamari-core
-      '{:dependencies [org.clojure/clojure
-                       org.clojure/specs.alpha
-                       org.clojure/tools.deps.alpha
-                       io.replikativ/hasch]})
+      '{:base {:dependencies [org.clojure/clojure
+                              org.clojure/specs.alpha
+                              org.clojure/tools.deps.alpha
+                              io.replikativ/hasch]}
+        :test {:dependencies [org.clojure/test.check]}})
 
     (contrib-style-clojure-library 'katamari-server
       '{:dependencies [katamari-core
@@ -54,6 +52,8 @@
     (kat/mvn-artifact 'me.arrdem/katamari
       '{:dependencies [katamari-server]
         :version "0.0.0"})
+
+    (kat/set-default-target 'me.arrdem/katamari)
 
     ;; Lets do it!
     (kat/roll!))

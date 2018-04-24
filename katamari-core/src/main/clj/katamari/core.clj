@@ -1,5 +1,7 @@
 (ns katamari.core
-  "Katamari core API as exposed to users."
+  "Katamari core API as exposed to users.
+
+  Provides functions for \"building up\" builds from targets."
   {:authors ["Reid \"arrdem\" McKenzie <me@arrdem.com>"]
    :license "https://www.eclipse.org/legal/epl-v10.html"}
   (:require [clojure.java.io :as io]
@@ -9,14 +11,29 @@
             [hasch.core :refer [uuid]])
   (:import java.io.PushbackReader))
 
-(defn default-build
-  "Returns \"the\" default build configuration.
-
-  Provides the documented default profiles."
-  []
+(def ^:private EMPTY-BUILD
   {:type :katamari/build
-   :profiles {}
-   :targets {}})
+   :profiles
+   {:katamari/default
+    [:base :system :user :provided :dev]
+
+    :base
+    {;; Options used by all Maven targets
+     :maven
+     {:repo "~/.m2"
+      :repositories [{:names ["central", "maven-central"]
+                      :urls ["https://repo1.maven.org/maven2"]
+                      :snapshots false}
+                     {:names ["clojars"]
+                      :urls ["https://repo.clojars.org"]}]}}
+    :targets {}}})
+
+(defn set-default-target
+  "Sets the ID of the default target.
+  This target is used by `test`, `repl` and other tasks when one is
+  not explicitly provided."
+  [build target]
+  (assoc build :default-target target))
 
 (defn load-profiles [build path]
   (let [f (io/file path)
@@ -31,6 +48,16 @@
 
     (update build :profiles merge profiles)))
 
+(defn default-build
+  "Returns \"the\" default build configuration.
+
+  Provides the documented default profiles, and loads system settings."
+  []
+  (-> EMPTY-BUILD
+      (load-profiles "/etc/katamari.edn")
+      (load-profiles (str (System/getProperty "user.home")
+                          "/.katamari/profiles.edn"))))
+
 (defn mvn-dep
   "Enters a Maven jar dependency into the build.
 
@@ -38,6 +65,7 @@
   ([build coordinate]
    (mvn-dep build coordinate {}))
   ([build [name version & more :as coordinate] options]
+   (require 'katamari.core.mvn)
    (assoc-in build [:targets name]
              {:type :maven-dep
               :coordinate coordinate
@@ -52,6 +80,7 @@
 
   FIXME: describe options. needs a spec."
   [build name options]
+  (require 'katamari.core.mvn)
   (assoc-in build [:targets name]
             {:type :maven-artifact
              :options options}))
@@ -65,6 +94,7 @@
 
   FIXME: describe options. needs a spec."
   [build name options]
+  (require 'katamari.core.clojure)
   (assoc-in build [:targets name]
             {:type :clojure-library
              :options options}))
@@ -79,10 +109,47 @@
 
   FIXME: describe options. needs a spec."
   [build name options]
+  (require 'katamari.core.clojure)
   (assoc-in build [:targets name]
             {:type :clojure-tests
              :options options}))
 
+(defn uberjar
+  "Enters a \"jar\" into the build.
+
+  Jars are produced incrementally, and contain only their direct
+  dependencies.  For instance, a jar which depended on several Clojure
+  targets would contain the
+
+  FIXME: describe options. needs a spec."
+  [build name options]
+  (require 'katamari.core.uberjar)
+  (assoc-in build [:targets name]
+            {:type :uberjar
+             :options options}))
+
+(defn uberjar
+  "Enters an \"uberjar\" into the build.
+
+  Unlike normal jars, uberjars include all their transitive
+  dependencies and can be executed stand-alone.
+
+  FIXME: describe options. needs a spec."
+  [build name options]
+  (require 'katamari.core.uberjar)
+  (assoc-in build [:targets name]
+            {:type :uberjar
+             :options options}))
+
+(def ^:dynamic *build*
+  "Implementation detail of `#'roll!` not intended for public use."
+  nil)
+
 (defn ^:dynamic roll!
   "Finalizes a build descriptor, returning it to Katamari for execution."
-  [build] build)
+  [build]
+  (if (instance? clojure.lang.Atom *build*)
+    (reset! *build* build)
+    (binding [*out* *err*]
+      (println "katamari.core] Warning: tried to `roll!` without a `*build*` context!")))
+  build)
