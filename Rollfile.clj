@@ -22,7 +22,8 @@
                        [(str name "/src/dev/resources")])))
       ;; Automatic test target
       (kat/clojure-tests (symbol (namespace name) (str (clojure.core/name name) "+tests"))
-         {:base {:source-paths [(str name "/src/test/clj")
+         {:base {:dependencies [name]
+                 :source-paths [(str name "/src/test/clj")
                                 (str name "/src/test/cljc")]
                  :resource-paths [(str name "/src/test/resources")]}})))
 
@@ -45,8 +46,8 @@
         :test {:dependencies [org.clojure/test.check]}})
 
     (contrib-style-clojure-library 'katamari-server
-      '{:dependencies [katamari-core
-                       org.clojure/tools.nrepl]})
+      '{:base {:dependencies [katamari-core
+                              org.clojure/tools.nrepl]}})
 
     ;; Roll everything up for easy deployment
     (kat/mvn-artifact 'me.arrdem/katamari
