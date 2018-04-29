@@ -50,8 +50,8 @@
 
     ;; Roll everything up for easy deployment
     (kat/mvn-artifact 'me.arrdem/katamari
-      '{:dependencies [katamari-server]
-        :version "0.0.0"})
+      '{:base {:dependencies [katamari-server]
+               :version "0.0.0"}})
 
     (kat/set-default-target 'me.arrdem/katamari)
 

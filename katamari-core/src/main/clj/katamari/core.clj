@@ -8,14 +8,17 @@
             [clojure.edn :as edn]
             [clojure.spec.alpha :as spec]
             [clojure.tools.deps.alpha :as deps]
-            [hasch.core :refer [uuid]])
+            [hasch.core :refer [uuid]]
+            [potemkin.namespaces :refer [import-vars]])
   (:import java.io.PushbackReader))
 
 (def ^:private EMPTY-BUILD
   {:type :katamari/build
    :profiles
    {:katamari/default
-    [:base :system :user :provided :dev]
+    [:base :system :user :provided]
+
+    ;; FIXME: How are dev, test, repl and soforth defined not magically?
 
     :base
     {;; Options used by all Maven targets
@@ -25,8 +28,12 @@
                       :urls ["https://repo1.maven.org/maven2"]
                       :snapshots false}
                      {:names ["clojars"]
-                      :urls ["https://repo.clojars.org"]}]}}
-    :targets {}}})
+                      :urls ["https://repo.clojars.org"]}]}}}
+   :targets
+   {}
+
+   :tasks
+   {}})
 
 (defn set-default-target
   "Sets the ID of the default target.
@@ -58,88 +65,14 @@
       (load-profiles (str (System/getProperty "user.home")
                           "/.katamari/profiles.edn"))))
 
-(defn mvn-dep
-  "Enters a Maven jar dependency into the build.
-
-  FIXME: describe options. needs a spec."
-  ([build coordinate]
-   (mvn-dep build coordinate {}))
-  ([build [name version & more :as coordinate] options]
-   (require 'katamari.core.mvn)
-   (assoc-in build [:targets name]
-             {:type :maven-dep
-              :coordinate coordinate
-              :options options})))
-
-(defn mvn-artifact
-  "Enters a jar with Maven coordinates into the build.
-
-  Targets which depend on this artifact directly or transitively will
-  see this artifact included on classpaths when running Java tasks, or
-  tasks which use the Java stack.
-
-  FIXME: describe options. needs a spec."
-  [build name options]
-  (require 'katamari.core.mvn)
-  (assoc-in build [:targets name]
-            {:type :maven-artifact
-             :options options}))
-
-(defn clojure-library
-  "Enters a Clojure library into the build.
-
-  Targets which depend on this artifact directly or transitively will
-  see this artifact included on classpaths when running Java tasks, or
-  tasks which use the Java stack.
-
-  FIXME: describe options. needs a spec."
-  [build name options]
-  (require 'katamari.core.clojure)
-  (assoc-in build [:targets name]
-            {:type :clojure-library
-             :options options}))
-
-(defn clojure-tests
-  "Enters a Clojure test suite into the build.
-
-  A Clojure test suite is just like a Clojure library, except that
-  test running tasks will recognize it and the tests can be
-  automatically run when the tests or any of their dependencies
-  change.
-
-  FIXME: describe options. needs a spec."
-  [build name options]
-  (require 'katamari.core.clojure)
-  (assoc-in build [:targets name]
-            {:type :clojure-tests
-             :options options}))
-
-(defn uberjar
-  "Enters a \"jar\" into the build.
-
-  Jars are produced incrementally, and contain only their direct
-  dependencies.  For instance, a jar which depended on several Clojure
-  targets would contain the
-
-  FIXME: describe options. needs a spec."
-  [build name options]
-  (require 'katamari.core.uberjar)
-  (assoc-in build [:targets name]
-            {:type :uberjar
-             :options options}))
-
-(defn uberjar
-  "Enters an \"uberjar\" into the build.
-
-  Unlike normal jars, uberjars include all their transitive
-  dependencies and can be executed stand-alone.
-
-  FIXME: describe options. needs a spec."
-  [build name options]
-  (require 'katamari.core.uberjar)
-  (assoc-in build [:targets name]
-            {:type :uberjar
-             :options options}))
+;; Ah yes
+(import-vars
+ [katamari.targets.mvn
+  mvn-dep mvn-artifact]
+ [katamari.targets.jvm
+  jar uberjar]
+ [katamari.targets.clj
+  clojure-library clojure-tests])
 
 (def ^:dynamic *build*
   "Implementation detail of `#'roll!` not intended for public use."
