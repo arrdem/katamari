@@ -31,12 +31,14 @@
         (not a) b))
 
 (defn activate-profiles* [target-map active-profiles]
-  (into {}
-        (for [[id definition] target-map]
+  (->> (for [[id definition] target-map]
           [id (update definition
                       :options (fn [m]
-                                 (apply merge-with merge*
-                                        (map #(get m % {}) active-profiles))))])))
+                                 (->> (concat (map #(get m % {})
+                                                   (keep keyword? active-profiles))
+                                              (keep map? active-profiles))
+                                      (apply merge-with merge*))))])
+       (into {})))
 
 (defn fix
   "Iterate `f` over `x` until it converges - that is `(= (f x*) (f (f x*)))` and return the first `x*`."
@@ -55,14 +57,27 @@
   [build active-profiles]
   (let [active-profiles (or (seq active-profiles) #{:katamari/default})
         ;; This is a subset of lein's profilels / project map merging behavior
+        ;;
+        ;; Particularly, ^:replace and other metadata isn't respected.
+        ;;
+        ;; Activating anonymous profiles is now barely supported.
         active-profiles (fix (fn [profiles]
-                               (into (sorted-set)
-                                     (mapcat #(let [to-activate (get (:profiles build) % [])]
-                                                (cons %
-                                                      (when (every? keyword? to-activate)
-                                                        to-activate)))
+                               (into #{}
+                                     (mapcat (fn [profile]
+                                               {:post [(do (clojure.pprint/pprint %) true)
+                                                       (sequential? %)
+                                                       (every? (some-fn keyword? map?) %)]}
+                                               (if (keyword? profile)
+                                                 (let [to-activate (get (:profiles build) profile [])]
+                                                   (if (and (sequential? to-activate)
+                                                            (every? (some-fn map? keyword?) to-activate))
+                                                     (cons profile (seq to-activate))
+                                                     (list profile)))
+                                                 (list profile)))
                                              profiles)))
                              active-profiles)]
+    (clojure.pprint/pprint
+     active-profiles)
     (update (assoc build :active-profiles active-profiles)
             :targets activate-profiles* active-profiles)))
 

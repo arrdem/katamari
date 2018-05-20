@@ -66,11 +66,18 @@
                           "/.katamari/profiles.edn"))))
 
 ;; Ah yes
+(require 'katamari.targets.mvn)
 (import-vars
  [katamari.targets.mvn
-  mvn-dep mvn-artifact]
+  mvn-dep mvn-artifact])
+
+(require 'katamari.targets.jvm)
+(import-vars
  [katamari.targets.jvm
-  jar uberjar]
+  jar uberjar])
+
+(require 'katamari.targets.clj)
+(import-vars
  [katamari.targets.clj
   clojure-library clojure-tests])
 
