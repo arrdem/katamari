@@ -3,7 +3,8 @@
   {:authors ["Reid \"arrdem\" McKenzie <me@arrdem.com>"]
    :license "https://www.eclipse.org/legal/epl-v10.html"}
   (:require [clojure.string :as str]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [clojure.spec.alpha :as s])
   (:import [java.nio.file Paths]))
 
 (defn rank-sort-graph
@@ -206,10 +207,14 @@
                    paths)))
                path-or-paths)})
 
-(defn glob
-  "Constructor for a target defined by a regex glob over the filesystem."
-  [& patterns]
-  {:type :target/glob
-   :patterns patterns})
+;; Products are produced from zero or more other products via steps.
+;;
+;; Steps are delayed, packaged computations carrying metadata about their dependencies. They are
+;; represented simply as functions with non-nil metadata.
+;;
+;; Realizing a step to a product is achieved by simply applying the function encoding the step to
+;; appropriate arguments - products already known to the build system.
 
-(defmacro def)
+
+
+;; 
