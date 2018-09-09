@@ -1,95 +1,95 @@
 (ns katamari.core
-  "Katamari core API as exposed to users.
+  "Katamari's entry point.
 
-  Provides functions for \"building up\" builds from targets."
+  WARNING:
+    This namespace MUST be kept svelt.
+    Everything goes through here.
+    Use lazy calls wherever possible."
   {:authors ["Reid \"arrdem\" McKenzie <me@arrdem.com>"]
    :license "https://www.eclipse.org/legal/epl-v10.html"}
-  (:require [clojure.java.io :as io]
-            [clojure.edn :as edn]
-            [clojure.spec.alpha :as spec]
-            [clojure.tools.deps.alpha :as deps]
-            [hasch.core :refer [uuid]]
-            [potemkin.namespaces :refer [import-vars]])
-  (:import java.io.PushbackReader))
+  (:require [clojure.string :as str]
+            [clojure.spec.alpha :as s]
+            [detritus.spec :refer [if-conform-let]]
+            [katamari.lazy :refer [lazy-call]])
+  ;; As we declare this to be the main, we need to gen-class
+  (:gen-class))
 
-(def ^:private EMPTY-BUILD
-  {:type :katamari/build
-   :profiles
-   {:katamari/default
-    [:base :system :user :provided]
+;; FIXME (arrdem 2018-09-09):
+;;   Requires I'll want elsewhere eventually
 
-    ;; FIXME: How are dev, test, repl and soforth defined not magically?
+;; [clojure.tools.deps.alpha :as deps]
+;; [hasch.core :refer [uuid]]
+;; [clojure.java.io :as io]
+;; [clojure.edn :as edn]
+;; [clojure.string :as str]
+;; [detritus.update :refer [fix]]
 
-    :base
-    {;; Options used by all Maven targets
-     :maven
-     {:repo "~/.m2"
-      :repositories [{:names ["central", "maven-central"]
-                      :urls ["https://repo1.maven.org/maven2"]
-                      :snapshots false}
-                     {:names ["clojars"]
-                      :urls ["https://repo.clojars.org"]}]}}}
-   :targets
-   {}
+(s/def ::main-args
+  (s/or :version-command
+        (s/cat :flag (s/or :simple #{"-v"}
+                           :long #{"--version"}
+                           :word #{"version"}))
 
-   :tasks
-   {}})
+        :help-command
+        (s/cat :flag (s/or :simple #{"-h"}
+                           :long #{"--help"}
+                           :word #{"help"}))
 
-(defn set-default-target
-  "Sets the ID of the default target.
-  This target is used by `test`, `repl` and other tasks when one is
-  not explicitly provided."
-  [build target]
-  (assoc build :default-target target))
+        :command
+        (s/cat :command-name string?
+               :unparsed-args (s/+ string?))))
 
-(defn load-profiles [build path]
-  (let [f (io/file path)
-        profiles (if (.exists f)
-                   (edn/read (PushbackReader. (io/reader f)))
-                   {})]
-    ;; FIXME (arrdem 2018-04-13):
-    ;;   Use something more carefully considered than merge
+;;;; Helpers so -main is trivial
 
-    ;; FIXME (arrdem 2018-04-13):
-    ;;   Validate the read profile map
+(declare -main)
 
-    (update build :profiles merge profiles)))
+(defn -help
+  "Helper to -main, used to implement the help behavior"
+  [args?]
+  (when args?
+    (println "Unrecognized args:")
+    (prn args?)
+    (println "--------------------------------------------------------------------------------"))
+  (println
+   (str/replace (:doc (meta #'-main))
+                #"(?sm)^[\s&&[^\n\r]]{2}" "")))
 
-(defn default-build
-  "Returns \"the\" default build configuration.
-
-  Provides the documented default profiles, and loads system settings."
+(defn -version
+  "Helper to -main, used to implement the version command"
   []
-  (-> EMPTY-BUILD
-      (load-profiles "/etc/katamari.edn")
-      (load-profiles (str (System/getProperty "user.home")
-                          "/.katamari/profiles.edn"))))
+  (println
+   (slurp
+    (lazy-call clojure.java.io/resource "katamari/VERSION"))))
 
-;; Ah yes
-(require 'katamari.targets.mvn)
-(import-vars
- [katamari.targets.mvn
-  mvn-dep mvn-artifact])
+;;;; -main itself
 
-(require 'katamari.targets.jvm)
-(import-vars
- [katamari.targets.jvm
-  jar uberjar])
+(defn -main
+  "
+  Usage:
+    kat [command] [flag ....]
 
-(require 'katamari.targets.clj)
-(import-vars
- [katamari.targets.clj
-  clojure-library clojure-tests])
+  Top level flags:
+    -h, --help - print this message
+    -v --version - print katamari build & version information
 
-(def ^:dynamic *build*
-  "Implementation detail of `#'roll!` not intended for public use."
-  nil)
+  Commands:
+    prep    [flags] (target ...) - perform prep tasks required by the target(s)
+    lint    [flags] (target ...) - perform configured lint actions on the target(s)
+    compile [flags] (target ...) - prepare and compile the target(s)
+    test    [flags] (target ...) - execute any configured test runners for the target(s)
+    pprint  [flags] (target ...) - pretty-print data about available tasks & target(s
 
-(defn ^:dynamic roll!
-  "Finalizes a build descriptor, returning it to Katamari for execution."
-  [build]
-  (if (instance? clojure.lang.Atom *build*)
-    (reset! *build* build)
-    (binding [*out* *err*]
-      (println "katamari.core] Warning: tried to `roll!` without a `*build*` context!")))
-  build)
+    Note that, depending on user and build configuration additional tasks may be available.
+    See your build configuration and the output of the pprint tasks for an exhaustive list."
+  [& args]
+  (if-conform-let [[command {:keys [command-name unparsed-args]}] ::main-args args]
+    (case command
+      :version-command (-version)
+      :help-command (-help nil)
+      :command (try (lazy-call katamari.command/-command command-name unparsed-args)
+                    :version-command (-version)
+                    (catch katamari.ex.CommandNotFoundException e
+                      (-help args)
+                      (System/exit 1))))
+    (do (-help args)
+        (System/exit 1))))

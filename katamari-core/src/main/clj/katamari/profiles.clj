@@ -1,22 +1,9 @@
-(ns katamari.main
-  "Katamari's entry point."
+(ns katamari.profiles
+  ""
   {:authors ["Reid \"arrdem\" McKenzie <me@arrdem.com>"]
    :license "https://www.eclipse.org/legal/epl-v10.html"}
-  (:require [clojure.java.io :as io]
-            [clojure.edn :as edn]
-            [clojure.spec.alpha :as spec]
-            [clojure.tools.deps.alpha :as deps]
-            [hasch.core :refer [uuid]])
-  (:gen-class))
-
-(defn load-steps
-  [])
-
-(defn load-targets
-  [])
-
-(defn load-tasks
-  [])
+  (:require clojure.pprint
+            [detritus.update :refer [fix]]))
 
 (defn merge* [a b]
   (cond (or (and (vector? a) (or (vector? b) (not b)))
@@ -32,21 +19,13 @@
 
 (defn activate-profiles* [target-map active-profiles]
   (->> (for [[id definition] target-map]
-          [id (update definition
-                      :options (fn [m]
-                                 (->> (concat (map #(get m % {})
-                                                   (keep keyword? active-profiles))
-                                              (keep map? active-profiles))
-                                      (apply merge-with merge*))))])
+         [id (update definition
+                     :options (fn [m]
+                                (->> (concat (map #(get m % {})
+                                                  (keep keyword? active-profiles))
+                                             (keep map? active-profiles))
+                                     (apply merge-with merge*))))])
        (into {})))
-
-(defn fix
-  "Iterate `f` over `x` until it converges - that is `(= (f x*) (f (f x*)))` and return the first `x*`."
-  [f x]
-  (let [x' (f x)]
-    (if-not (= x x')
-      (recur f x')
-      x')))
 
 (defn apply-build-profiles
   "Given a build and a (possibly empty) sequence of profiles, apply all selected profiles returning a
@@ -80,31 +59,3 @@
      active-profiles)
     (update (assoc build :active-profiles active-profiles)
             :targets activate-profiles* active-profiles)))
-
-(defn order-build-products
-  "Given a simplified build, construct a dependency order plan for it."
-  [simplified-build & [goal-target?]]
-  (let [targets (:targets simplified-build)]
-    (loop [plan []
-           planned #{}
-           unplanned (if goal-target?
-                       (fix (fn [target-ids]
-                              (into (sorted-set)
-                                    (mapcat (fn [target]
-                                              (cons target (get-in targets [target :options :dependencies])))
-                                            target-ids)))
-                            (sorted-set goal-target?))
-                       (set (keys targets)))]
-      (if (seq unplanned)
-        (let [phase (keep #(when (every? (partial contains? planned)
-                                         (get-in targets [% :options :dependencies] []))
-                             %)
-                          unplanned)]
-          (recur (conj plan (vec phase))
-                 (into planned phase)
-                 (reduce disj unplanned phase)))
-        plan))))
-
-(defn -main
-  ""
-  [& args])

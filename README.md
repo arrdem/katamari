@@ -11,7 +11,8 @@
 
 Build tools are tricky things.
 It's often said that the [two hardest problems in computer science are cache invalidation, naming things and off by one errors](https://twitter.com/codinghorror/status/506010907021828096).
-Unfortunately, build tools run right smack into both of these problems.
+Unfortunately, build tools run right smack into both^W all of these problems.
+Build targets / products must be named for human use, compilation results must be cached so programmers don't tear their hair out waiting for compilers and all sorts of otherwise reasonable assumptions are ruined by flaky tests and non-reproducible builds.
 
 Programmers, well adapted to wrangling complexity and pipelines, do all kinds of things when packaging and building their software.
 Build systems are in the most common case mere shell scripts used to glue together programs of all kinds.
@@ -21,8 +22,7 @@ There's no good way to understand what configuration a task consumed, or what re
 "real" build tools try to solve this problem by rendering build steps declarative, so that the declared dependency relationships can be used to derive incremental compilation behavior.
 This is the approach taken by Bazel, Buck, Pants, Maven, Boot and more.
 
-As a Twitter employee I spent a lot of...
-quality time with Pants and came to appreciate the repeatability properties it provided, and its change detection facilities.
+As a Twitter employee I spent a lot of "quality" time with Pants and came to appreciate the repeatability properties it provided, and its change detection facilities.
 Unfortunately because Pants and friends try to be efficient general purpose solutions for many toolchains, their particular machinery is greatly complicated by the needs of those tools.
 For instance Pant's Java compilation pipeline is inextricably bound to Scala's incremental compilation engine because that was a high priority for the Pants developers.
 As these tools are institutional, they're thinly documented at best.
