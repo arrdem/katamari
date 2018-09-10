@@ -6,6 +6,7 @@
 
   :dependencies [[org.clojure/clojure "1.10.0-alpha6"]
                  [org.clojure/spec.alpha "0.1.143"]
+                 [org.clojure/java.classpath "0.3.0"]
                  ;; FIXME (arrdem 2018-09-09):
                  ;;   What if any of this will I be using?
                  #_[org.clojure/tools.deps.alpha "0.5.417"] ;; FIXME: am I actually gonna use this?
