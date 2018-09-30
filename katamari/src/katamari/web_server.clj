@@ -39,12 +39,12 @@
 (def +request-middleware+
   (-> root-task-handler
 
-      ;; Single request handlers
+      ;; Simple request handlers
       t.c/handle-start-server
       t.c/handle-show-request
       t.c/handle-stop-server
 
-      ;; Conditional transformations in non-conflicting order
+      ;; Handlers that hack the request
       t.c/wrap-list
       t.c/wrap-help
 
