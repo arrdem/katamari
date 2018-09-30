@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+
+## About
+#
+# A shim for starting the Katamari server, and sending it requests
+
+## Helpers
+
+function _get_conf() {
+    # $1 f
+    # $2 k
+    # $3 default
+    v=$(awk -F = "/$2/ {print \$2; exit}" "$1")
+    if [ -z "$v" ]; then v=$3; fi
+    echo "$v"
+}
+
+## Configuration
+
+# Find java executable
+if [ -z "${JAVA_CMD}" ]; then
+    set +e
+    export JAVA_CMD=$(type -p java)
+    set -e
+    if [[ ! -n "$JAVA_CMD" ]]; then
+        if [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]]; then
+            export JAVA_CMD="$JAVA_HOME/bin/java"
+        else
+            >&2 echo "Couldn't find 'java'. Please set JAVA_HOME or JAVA_CMD."
+            exit 1
+        fi
+    fi
+fi
+
+# The kat install locaiton
+if [ -z "${KAT_BIN_ROOT}"] ; then
+    export KAT_BIN_ROOT=$(dirname $(realpath "${0}"))
+fi
+
+# The kat repo root
+if [ -z "${KAT_REPO_ROOT}" ]; then
+    # FIXME (arrdem 2018-09-26):
+    #   This is a shitty and may not be reliable way to get the repo root
+    export KAT_REPO_ROOT=$(realpath $(git worktree list | awk '{print $1; exit}'))
+fi
+
+if [ -z "${KAT_CONFIG}" ]; then
+    KAT_CONFIG="${KAT_REPO_ROOT}/kat.conf"
+fi
+
+# Katamari's server port
+if [ -z "${KAT_SERVER_PORT}" ]; then
+    KAT_SERVER_PORT=$(_get_conf "${KAT_CONFIG}" server_port 3636)
+fi
+
+# Katamari's server port
+if [ -z "${KAT_SERVER_ADDR}" ]; then
+    KAT_SERVER_ADDR=$(_get_conf "${KAT_CONFIG}" server_addr localhost)
+fi
+
+# Katamari's classpath
+if [ -z "${KAT_SERVER_CP}" ]; then
+    KAT_SERVER_CP=$(_get_conf "${KAT_CONFIG}" server_classpath)
+
+    # FIXME (arrdem 2018-09-26):
+    #   How to get away from setting this? Can it be made stand-alone?
+    if [ -z "${KAT_SERVER_CP}" ]; then
+        >&2 echo "Couldn't find kat's server classpath. Please set 'server_classpath'."
+        exit 1
+    fi
+fi
+
+# How long to wait for the server to come up
+if [ -z "${KAT_SERVER_START_SEC}" ]; then
+    KAT_SERVER_START_SEC=$(_get_conf "${KAT_CONFIG}" server_start_sec 15)
+fi
+
+# Where do the logs go
+if [ -z "${KAT_SERVER_LOG_FILE}" ]; then
+    KAT_SERVER_LOG_FILE=$(_get_conf "${KAT_CONFIG}" server_log_file kat.log)
+fi
+
+# Where do the cache, lockfiles and other state live
+if [ -z "${KAT_SERVER_WORK_DIR}" ]; then
+    KAT_SERVER_WORK_DIR=$(_get_conf "${KAT_CONFIG}" server_work_dir)
+fi
+
+## Booting the server
+
+# Ping the server to see if it's up yet
+function _ping_server() {
+    curl -s --connect-timeout 1\
+         -H "Accept: application/json;" \
+         "http://${KAT_SERVER_ADDR}:${KAT_SERVER_PORT}/api/v0/ping" \
+         2>&1 > /dev/null
+}
+
+# Start the server and wait for it to come back
+function _start_server() {
+    # Ensure the work dir
+    mkdir -p "${KAT_REPO_ROOT}/${KAT_SERVER_WORK_DIR}"
+
+    # FIXME (arrdem 2018-09-29):
+    #   Should be possible to time how long it takes the server to become available.
+    >&2 echo "Using classpath: ${KAT_SERVER_CP}"
+
+    # FIXME (arrdem 2018-09-29):
+    #   Should this spawn in the workdir?
+    CWD=${KAT_SERVER_WORK_DIR} "${JAVA_CMD}" -cp "${KAT_SERVER_CP}" \
+       clojure.main -m katamari.web-server "${KAT_CONFIG}" \
+       2>&1 > "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}" &
+    KAT_SERVER_PID="$!"
+
+    while true; do
+        if ! kill -n 0 "${KAT_SERVER_PID}"; then
+            >&2 echo "Katamari server failed to start!"
+            exit 1
+        fi
+
+        if _ping_server; then
+            break;
+        fi
+    done
+}
+
+# Send $@ and the repo config to the server as a request
+function _send_request() {
+    # FIXME (arrdem 2018-09-26):
+    #   This doesn't / can't forward stdin or otherwise achieve bidirectional coms with the server.
+    #
+    # Would need to put together a much smarter and presumably python client to pull that off, not
+    # that it isn't on the table. This is a pretty trivial prototype.
+
+    # Slurp $@ into a JSON array so as to preserve whatever shell string wackiness
+
+    # FIXME (arrdem 2018-09-29):
+    #   Is there a way to roll this up in the JQ usage?
+    args=""
+    for e in "${@}"; do
+        if ! [ -z "$args" ]; then args="$args, "; fi
+        args+=$(echo "$e" | jq -cR .)
+    done
+    args="[$args]"
+
+    # Send the request
+    # FIXME (arrdem 2018-09-29): should be able to debug this request out to the user
+    curl -s -H "Content-type: application/json;" \
+         -H "Accept: application/json;" \
+         --data "@-" \
+         -XGET "http://${KAT_SERVER_ADDR}:${KAT_SERVER_PORT}/api/v0/request" <<EOF | jq .
+{"repo_root":"${KAT_REPO_ROOT}",
+ "user_root":"${HOME}",
+ "config_file":"${KAT_CONFIG}",
+ "pwd":"${PWD}",
+ "request":$args}
+EOF
+}
+
+## Core behavior
+
+# Try to start the server if one isn't active.
+# Note that _start_server hard exits if the server fails to boot, so the script will die there
+_ping_server || _start_server
+
+# Having either pinnged or started the server, chuck the request over the wall
+_send_request "$@"
