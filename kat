@@ -12,7 +12,7 @@ function _get_conf() {
     # $3 default
     v=$(awk -F = "/$2/ {print \$2; exit}" "$1")
     if [ -z "$v" ]; then v=$3; fi
-    echo "$v"
+    echo "$v" | tr -d " \t"
 }
 
 ## Configuration
@@ -102,10 +102,7 @@ function _start_server() {
 
     # FIXME (arrdem 2018-09-29):
     #   Should be possible to time how long it takes the server to become available.
-    >&2 echo "Using classpath: ${KAT_SERVER_CP}"
 
-    # FIXME (arrdem 2018-09-29):
-    #   Should this spawn in the workdir?
     CWD=${KAT_SERVER_WORK_DIR} "${JAVA_CMD}" -cp "${KAT_SERVER_CP}" \
        clojure.main -m katamari.web-server "${KAT_CONFIG}" \
        2>&1 > "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}" &
@@ -144,16 +141,20 @@ function _send_request() {
 
     # Send the request
     # FIXME (arrdem 2018-09-29): should be able to debug this request out to the user
-    curl -s -H "Content-type: application/json;" \
+    output=$(
+        curl -s -H "Content-type: application/json;" \
          -H "Accept: application/json;" \
          --data "@-" \
-         -XGET "http://${KAT_SERVER_ADDR}:${KAT_SERVER_PORT}/api/v0/request" <<EOF | jq .
+         -XGET "http://${KAT_SERVER_ADDR}:${KAT_SERVER_PORT}/api/v0/request" <<EOF
 {"repo_root":"${KAT_REPO_ROOT}",
  "user_root":"${HOME}",
  "config_file":"${KAT_CONFIG}",
  "pwd":"${PWD}",
  "request":$args}
 EOF
+          )
+    status=$?
+    echo "$output" | jq -r .msg
 }
 
 ## Core behavior

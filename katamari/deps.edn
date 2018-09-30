@@ -1,8 +1,14 @@
-{:paths ["src"]
+{:paths ["src"
+         "resources"]
+ 
  :deps {org.clojure/clojure {:mvn/version "1.9.0"}
         org.clojure/clojure-tools {:local/root "../clojure-tools"}
+        org.clojure/tools.logging {:mvn/version "0.5.0-alpha"}
 
         ring/ring {:mvn/version "1.7.0-RC1"}
         ring/ring-jetty-adapter {:mvn/version "1.7.0-RC1"}
+        ring/ring-json {:mvn/version "0.5.0-beta1"}
+
         compojure/compojure {:mvn/version "1.6.1"}
-        cheshire/cheshire {:mvn/version "5.8.0"}}}
+        cheshire/cheshire {:mvn/version "5.8.0"}
+        instaparse/instaparse {:mvn/version"1.4.9"}}}

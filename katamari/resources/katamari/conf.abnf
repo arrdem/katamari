@@ -1,0 +1,10 @@
+INI = ( <CLF> / <WS> / SECTION / <COMMENT> / KEYVALUE ) +
+SECTION = HEADER ( <WS> / <COMMENT> / KEYVALUE ) *
+HEADER = <"["> #"[^\]]+" <"]"> <CLF>
+KEYVALUE = WORD < WS* "=" WS*> VALUE <CLF>
+VALUE = LIST / WORD
+LIST = <"["> ( <WS> / WORD ) * <"]"> 
+WORD = (<"'"> #"[^']*" <"'">) / (<'"'> #'[^"]*' <'"'>) / #"[^\s=\[\],'\"]+" (* just a word *)
+COMMENT = #"^#.*?\n"
+WS = #"[\s,]*"
+CLF = "\n" "\r" ?
