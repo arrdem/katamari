@@ -49,8 +49,8 @@ if [ -z "${KAT_CONFIG}" ]; then
 fi
 
 # Katamari's server port
-if [ -z "${KAT_SERVER_PORT}" ]; then
-    KAT_SERVER_PORT=$(_get_conf "${KAT_CONFIG}" server_port 3636)
+if [ -z "${KAT_SERVER_HTTP_PORT}" ]; then
+    KAT_SERVER_HTTP_PORT=$(_get_conf "${KAT_CONFIG}" server_http_port 3636)
 fi
 
 # Katamari's server port
@@ -91,7 +91,7 @@ fi
 function _ping_server() {
     curl -s --connect-timeout 1\
          -H "Accept: application/json;" \
-         "http://${KAT_SERVER_ADDR}:${KAT_SERVER_PORT}/api/v0/ping" \
+         "http://${KAT_SERVER_ADDR}:${KAT_SERVER_HTTP_PORT}/api/v0/ping" \
          2>&1 > /dev/null
 }
 
@@ -103,10 +103,25 @@ function _start_server() {
     # FIXME (arrdem 2018-09-29):
     #   Should be possible to time how long it takes the server to become available.
 
+    echo "Starting server ..."
+
+    # Throw a header in the logs
+    cat <<EOF >> "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}"
+--------------------------------------------------------------------------------
+$(date)] SERVER RESTARTING
+--------------------------------------------------------------------------------
+EOF
+
     CWD=${KAT_SERVER_WORK_DIR} "${JAVA_CMD}" -cp "${KAT_SERVER_CP}" \
        clojure.main -m katamari.web-server "${KAT_CONFIG}" \
-       2>&1 > "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}" &
+       >> "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}" 2>&1 &
     KAT_SERVER_PID="$!"
+
+    disown "${KAT_SERVER_PID}"
+
+    i=1
+    sp="/-\|"
+    echo -n "Waiting for it to become responsive  "
 
     while true; do
         if ! kill -n 0 "${KAT_SERVER_PID}"; then
@@ -117,7 +132,15 @@ function _start_server() {
         if _ping_server; then
             break;
         fi
+
+        # Rotate the spinner
+        printf "\b${sp:i++%${#sp}:1}"
+
+        sleep 0.25
     done
+
+    # Clear the spinner
+    printf "\b\n"
 }
 
 # Send $@ and the repo config to the server as a request
@@ -145,7 +168,7 @@ function _send_request() {
         curl -s -H "Content-type: application/json;" \
          -H "Accept: application/json;" \
          --data "@-" \
-         -XGET "http://${KAT_SERVER_ADDR}:${KAT_SERVER_PORT}/api/v0/request" <<EOF
+         -XGET "http://${KAT_SERVER_ADDR}:${KAT_SERVER_HTTP_PORT}/api/v0/request" <<EOF
 {"repo_root":"${KAT_REPO_ROOT}",
  "user_root":"${HOME}",
  "config_file":"${KAT_CONFIG}",

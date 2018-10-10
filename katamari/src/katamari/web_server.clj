@@ -13,7 +13,8 @@
             [ring.middleware.session :as session]
             [katamari.conf :as conf]
             [katamari.tasks :refer [root-task-handler]]
-            [katamari.tasks.core :as t.c]))
+            [katamari.tasks.core :as t.c]
+            [katamari.nrepl-server :refer [start-nrepl-server!]]))
 
 ;;;; Config crap
 
@@ -77,7 +78,7 @@
   (atom nil))
 
 (defn start-web-server! [cfg]
-  (let [jetty-cfg {:port (Long/parseLong (:server-port cfg "3636"))
+  (let [jetty-cfg {:port (Long/parseLong (:server-http-port cfg "3636"))
                    :host (:server-addr cfg "127.0.0.1")
                    :join? false}
         jetty-inst (-> #'+app+
@@ -99,7 +100,8 @@
   (log/info "Loading config file" config-file)
   (let [cfg (conf/load config-file key-fn)]
     (log/info "Loaded config" cfg)
-    (start-web-server! cfg)))
+    (start-web-server! cfg)
+    (start-nrepl-server! cfg)))
 
 (comment
   (start-web-server!
