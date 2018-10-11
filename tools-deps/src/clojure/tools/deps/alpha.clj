@@ -175,11 +175,12 @@
         deps (map use-dep deps)]
     (loop [q (into (PersistentQueue/EMPTY) (map vector deps))
            seen (into #{} deps)
+           visited #{}
            version-map nil
            exclusions nil] ;; path to set of exclusions at path
       (if-let [path (peek q)] ;; path from root dep to dep being expanded
         (let [q' (pop q)
-              [lib use-coord :as coord] (peek path)
+              [lib use-coord :as dep] (peek path)
               parents (pop path)
               coord-id (ext/dep-id lib use-coord config)]
           (when verbose (println "Expanding" lib coord-id))
@@ -191,7 +192,10 @@
                                 (remove (fn [[lib coord :as dep]]
                                           (when (contains? seen dep)
                                             (when verbose
-                                              (println "Skipping" lib (ext/dep-id lib coord config)))
+                                              (println "\tSkipping child"
+                                                       lib (ext/dep-id lib coord config)
+                                                       (if-not (contains? visited dep)
+                                                         "(enqueued)" "(seen)")))
                                            true)))
                                 doall)
                   use-path (conj parents lib)
@@ -199,11 +203,12 @@
               (recur
                (into q' child-paths)
                (into seen children)
+               (conj visited dep)
                (add-coord version-map lib coord-id use-coord parents action config verbose)
                (if-let [excl (:exclusions use-coord)]
                  (add-exclusion exclusions use-path excl)
                  exclusions)))
-            (recur q' seen version-map exclusions)))
+            (recur q' seen (conj visited dep) version-map exclusions)))
         (do
           (when verbose (println) (println "Version map:") (pprint version-map))
           version-map)))))
