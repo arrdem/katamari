@@ -71,9 +71,9 @@
 
 (defn- canonicalize-deps
   [deps config]
-  (reduce
-    (fn [m [lib coord]] (conj m (ext/canonicalize lib coord config)))
-    [] deps))
+  (mapv (fn [[lib coord]]
+          (ext/canonicalize lib coord config))
+        deps))
 
 ;; exclusions tree
 
