@@ -173,7 +173,9 @@ fi
 
 # Set dir containing the installed files
 install_dir=$(realpath $(dirname "${0}"))
-tools_cp="$install_dir/src:$install_dir/clojure-tools-1.9.0.394.jar"
+# FIXME (reid.mckenzie 2018-10-11):
+#   This is a (lack of) bootstrapping hack :c how to work around it?
+tools_cp="$install_dir/../tools-deps/src:$install_dir/clojure-tools-1.9.0.394.jar"
 
 # Execute resolve-tags command
 if "$resolve_tags"; then
@@ -214,9 +216,9 @@ fi
 
 # Chain deps.edn in config paths. repro=skip config dir
 if "$repro"; then
-  config_paths=("$install_dir/deps.edn" "deps.edn")
+  config_paths=("$install_dir/default-deps.edn" "deps.edn")
 else
-  config_paths=("$install_dir/deps.edn" "$config_dir/deps.edn" "deps.edn")
+  config_paths=("$install_dir/default-deps.edn" "$config_dir/deps.edn" "deps.edn")
 fi
 config_str=$(printf ",%s" "${config_paths[@]}")
 config_str=${config_str:1}
