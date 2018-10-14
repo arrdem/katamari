@@ -38,19 +38,23 @@
 ;;;; Tasks
 
 (def +request-middleware+
-  (-> root-task-handler
+  (atom
+   (-> root-task-handler
 
-      ;; Simple request handlers
-      t.c/handle-start-server
-      t.c/handle-show-request
-      t.c/handle-stop-server
+       ;; Simple request handlers
+       t.c/handle-start-server
+       t.c/handle-show-request
+       t.c/handle-stop-server
 
-      ;; Handlers that hack the request
-      t.c/wrap-list
-      t.c/wrap-help
+       ;; Handlers that hack the request
+       t.c/wrap-list
+       t.c/wrap-help
 
-      ;; Pure inits that happen first
-      t.c/guard-stop-server))
+       ;; Pure inits that happen first
+       t.c/guard-stop-server)))
+
+(defn inject-middleware [m]
+  (swap! +request-middleware+ m))
 
 ;;;; The server routes
 
@@ -64,10 +68,11 @@
     (GET "/request" {:keys [body]}
       (let [{:keys [request config-file repo-root]
              :as   json-body} (json/parse-string (slurp body) key-fn)
-            config          (-> (conf/load config-file)
-                                (merge (dissoc json-body :request)))]
+            config          (-> (conf/load config-file key-fn)
+                                (merge (dissoc json-body :request)))
+            middleware @+request-middleware+]
         ;; Note that this enables the middleware stack to recurse
-        (+request-middleware+ config +request-middleware+ request)))))
+        (middleware config middleware request)))))
 
 (defroutes +app+
   +api-v0+)

@@ -72,7 +72,11 @@
       (update (handler stack config request) :body conj (meta #'handle-start-server))
 
       "start-server"
-      (-> (resp/response {:msg "Started server!"})
+      (-> (resp/response {:msg (format (str "Started server!\n"
+                                            "  http port: %s\n"
+                                            "  nrepl port: %s\n")
+                                       (:server-http-port config)
+                                       (:server-nrepl-port config))})
           (resp/status 200))
 
       (handler stack config request))))

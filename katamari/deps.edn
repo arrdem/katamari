@@ -2,7 +2,7 @@
          "resources"]
  
  :deps {org.clojure/clojure {:mvn/version "1.9.0"}
-        org.clojure/clojure-tools {:local/root "../clojure-tools"}
+        org.clojure/tools.deps {:local/root "../tools-deps"}
         org.clojure/tools.logging {:mvn/version "0.5.0-alpha"}
 
         ring/ring {:mvn/version "1.7.0-RC1"}
@@ -13,4 +13,6 @@
         cheshire/cheshire {:mvn/version "5.8.0"}
         instaparse/instaparse {:mvn/version"1.4.9"}
 
-        nrepl/nrepl {:mvn/version "0.4.0"}}}
+        ;; Embedded development
+        nrepl/nrepl {:mvn/version "0.4.0"}
+        cider/cider-nrepl {:mvn/version "0.18.0"}}}
