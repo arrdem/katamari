@@ -177,7 +177,12 @@ function _send_request() {
 EOF
           )
     status=$?
-    echo "$output" | jq -r .msg
+
+    if [ ! -z $(echo "$output" | jq "if has(.msg) then .msg else \"\" end") ]; then
+        echo "$output" | jq -r ".msg"
+    else
+        echo "$output" | jq .
+    fi
 }
 
 ## Core behavior
