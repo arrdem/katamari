@@ -1,0 +1,133 @@
+#+TITLE: Katamari
+
+Roll your software up into artifacts!
+
+* TODO KAT-00
+
+  Sort out kinds of responses
+
+  At present, Katamari can accept requests, process them and produce responses. Which is
+  great. Unfortunately there's some Content-Type confusion if not outright conflation and it's not
+  clear how the server fits into the overall Katamari model.
+  
+  Say one wanted to implement a katamari repl task. How would it work? Where would it live? You'd
+  need the server to build a classpath, and then you'd boot (or connect to) a JVM... but what
+  process controls the user's terminal? How much of that complexity becomes baked into kat script?
+
+  Offloading tasks to the server is great, but it seems like kat needs to be a framework like git
+  which allows for "tasks" to be defined as additional scripts.
+
+* TODO KAT-01
+
+  Implement tab completion / integration
+
+  ./kat <TAB> should at least be able to tab-complete the available tasks
+
+  Relates to [[KAT-00]], in that server side tasks and script tasks both need to be enumerable.
+
+* TODO KAT-02
+
+  Implement a deps.edn based =./kat classpath= task, which emulates =clojure -Spath= in producing a fully
+  realized classpath. The initial implementation of "classpath" should eschew caching.
+
+* TODO KAT-03
+
+  Extend tools.deps with a "configure" or "init" step. When a dependency "type" first occurs, the
+  "configure" multimethod should be invoked.
+
+  This multimethod gives an opportunity for the handler to - well - configure or otherwise
+  initialize itself, and should be a function of the whole deps map to a new deps map. For instance,
+  this should make it possible to share a single Maven repository session across a dependency
+  resolution run. It shouldn't be nessecary to instantiate a new one per =mvn/version= coordinate.
+
+* WON'T DO KAT-04
+
+  Implement uberdiring.
+
+  Blocked by [[KAT-02]].
+
+  Once Katamari is able to produce classpaths, it should be possible to implement a =./kat uberdir=
+  command, which produces a single /directory/, containing all the files which would become jarfile
+  entries were an uberjar to be produced.
+
+  --- 
+
+  This was intended to be a stepping stone towards [[KAT-06]], which upon further research this seeks to
+  be a poor stepping stone towards as even slightly optimized docker build processes eschew
+  monolithic product dirs.
+ 
+* TODO KAT-05
+
+  Implement uberjaring as a target / task.
+
+  Blocked by [[KAT-04]], possibly.
+
+  Once Katamari can produce an "uberdir", converting it to a jarfile eg. via =zip= is trivial.
+
+* TODO KAT-06
+
+  Implement docker images as a target / task.
+
+  https://www.youtube.com/watch?v=H6gR_Cv4yWI - https://github.com/GoogleContainerTools/jib It looks
+  like Google has (predictably) spent a bunch of time figuring out how to do this well. Turns out
+  there's a lot of sublties about producing docker images efficiently, particularly to do with
+  producing layers, the order in which layers get produced.
+
+  - Google uses the GoogleContainerTools/distroless base image, no Linux install just a Java or
+    whatever "microkernel".
+  - Google's Jib is based on a three layer format. It eats your Maven configuration, generates three
+    layers /dependencies, /resources and /classes, and assumes that your libraries are slower moving
+    than your resources or your compiled classes. This allows you to optimize your rebuilds to some
+    degree, because while you still recompile the entire application your /dependencies is a
+    separate and presumed to be slower moving layer which can often be cached.
+
+  You'd need something fairly smart with access to build history and version bump history in order
+  to really optimize this process further, as you'd want to split libraries up essentially by the
+  rate at which they are changing. Maybe some user annotation for "stable" vs "unstable" libraries
+  would be adequate here?
+
+* DONE KAT-07
+
+  https://dev.clojure.org/jira/browse/TDEPS-79
+
+  clojure.tools.deps(.alpha) doesn't deal nicely with either cyclic dependencies, or even
+  repetitions of the same dependency within a tree. Figure out how to make sure that inividual lib
+  coordinates only get resolved once instead of every time they occur.
+
+* TODO KAT-08
+
+  Extend tools.deps to support Maven resolution batching.
+
+  https://github.com/apache/maven/blob/master/maven-resolver-provider/src/main/java/org/apache/maven/repository/internal/DefaultArtifactDescriptorReader.java#L211
+  
+  Maven/Aether was never designed to resolve single dependencies at a time. It was designed to
+  resolve entire dependency trees in one go. This means that actually an appreciable amount of time
+  in resolution is taken up just in initializing the model. Which we re-incur for every single
+  dependency, because we don't use the batchy features of the library.
+
+  Dependency resolution could probably be meaningfully optimized if the resolution protocol allowd
+  target types to participate in batched resolution of mutiple deps at once.
+
+  The fallback behavior would be just iteratively invoking the current resolve-one codepath.
+
+* TODO KAT-09
+
+  Profile tools-deps more.
+
+  [[KAT-08]] is motivated by the fact that even after the [[KAT-07]] algorithmic improvements, it's still
+  relatively slow to resolve the dependency tree. This seems to in large part be because deps
+  implements version resolution itself rather than deferring to Maven, but even then most of the
+  time is spent in various I/O or data model construction operations and it's not clear that just
+  making batch requests to Maven ala [[KAT-08]] would be an adequate optimization if the goal is sub ~7s
+  (parity with lein) to classpath cold. Lein takes the Clojure/JVM startup hit every time, so really
+  that's more like 4-5s to classpath from a dependency listing.
+  
+  One possible strategy here is for deps / Katamari to maintain its own faster to read (eg. EDN
+  formatted) cache of artifact metadata so that any Maven model overhead is amortized out. Would
+  need to understand the complexity trade-off there.
+
+  It may be that deps' iterative resolution algorithm was designed mainly for building the path /
+  tree data and that making real Maven batch requests would have significant consequences there.
+
+  Comparing the performance of Pomegrannete to the performance of tools.deps for some workloads may
+  be the most meaningful way to get an understanding here.
