@@ -15,7 +15,7 @@
             ;; The embedded nREPL server
             [katamari.server.nrepl-server :refer [start-nrepl-server!]]
             ;; Tasks
-            [katamari.server.tasks :refer [root-task-handler]]
+            [katamari.server.tasks :as t]
             [katamari.server.tasks.core :as t.c]
             [katamari.server.tasks.tools-deps :as t.tdeps]))
 
@@ -42,7 +42,7 @@
 
 (def +request-middleware+
   (atom
-   (-> root-task-handler
+   (-> t/root-task-handler
 
        ;; Simple request handlers
        t.c/handle-start-server
