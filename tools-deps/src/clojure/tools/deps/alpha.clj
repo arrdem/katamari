@@ -12,6 +12,7 @@
    [clojure.string :as str]
    [clojure.java.io :as jio]
    [clojure.tools.deps.alpha.extensions :as ext]
+   [me.raynes.fs :as fs]
 
    ;; Load extensions
    [clojure.tools.deps.alpha.extensions.maven]
@@ -286,8 +287,8 @@
   (let [libs (merge-with (fn [coord path] (assoc coord :paths [path])) lib-map classpath-overrides)
         lib-paths (mapcat :paths (vals libs))]
     (->> (concat extra-paths paths lib-paths)
-         (map (comp #(.getAbsolutePath %)
-                    jio/file))
+         (map (comp #(.getCanonicalPath %)
+                    fs/file))
          (str/join File/pathSeparator))))
 
 (comment

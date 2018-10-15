@@ -7,7 +7,7 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.tools.deps.alpha.extensions
-  (:require [clojure.java.io :as jio]))
+  (:require [me.raynes.fs :as fs]))
 
 ;; Helper for autodetect of manifest type
 
@@ -23,7 +23,7 @@
   [dir]
   (loop [[file-name manifest-type & others] manifest-types]
     (when file-name
-      (let [f (jio/file dir file-name)]
+      (let [f (fs/file dir file-name)]
         (if (and (.exists f) (.isFile f))
           {:deps/manifest manifest-type, :deps/root dir}
           (recur others))))))
@@ -120,4 +120,3 @@
 
 (defmethod coord-paths :default [lib coord manifest-type config]
   (throw-bad-manifest lib coord manifest-type))
-

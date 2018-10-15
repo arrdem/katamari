@@ -7,28 +7,27 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.tools.deps.alpha.extensions.pom
-  (:require
-    [clojure.java.io :as jio]
-    [clojure.string :as str]
-    [clojure.tools.deps.alpha.extensions :as ext]
-    [clojure.tools.deps.alpha.util.maven :as maven])
-  (:import
-    [java.io File]
-    [java.util List]
-    ;; maven-model
-    [org.apache.maven.model Model Dependency Exclusion]
-    ;; maven-model-builder
-    [org.apache.maven.model.building DefaultModelBuildingRequest DefaultModelBuilderFactory ModelSource FileModelSource]
-    [org.apache.maven.model.resolution ModelResolver]
-    ;; maven-aether-provider
-    [org.apache.maven.repository.internal DefaultModelResolver DefaultVersionRangeResolver]
-    ;; maven-resolver-api
-    [org.eclipse.aether RepositorySystemSession RequestTrace]
-    ;; maven-resolver-impl
-    [org.eclipse.aether.impl ArtifactResolver VersionRangeResolver RemoteRepositoryManager]
-    [org.eclipse.aether.internal.impl DefaultRemoteRepositoryManager]
-    ;; maven-resolver-spi
-    [org.eclipse.aether.spi.locator ServiceLocator]))
+  (:require [clojure.java.io :as jio]
+            [clojure.string :as str]
+            [clojure.tools.deps.alpha.extensions :as ext]
+            [clojure.tools.deps.alpha.util.maven :as maven]
+            [me.raynes.fs :as fs])
+  (:import [java.io File]
+           [java.util List]
+           ;; maven-model
+           [org.apache.maven.model Model Dependency Exclusion]
+           ;; maven-model-builder
+           [org.apache.maven.model.building DefaultModelBuildingRequest DefaultModelBuilderFactory ModelSource FileModelSource]
+           [org.apache.maven.model.resolution ModelResolver]
+           ;; maven-aether-provider
+           [org.apache.maven.repository.internal DefaultModelResolver DefaultVersionRangeResolver]
+           ;; maven-resolver-api
+           [org.eclipse.aether RepositorySystemSession RequestTrace]
+           ;; maven-resolver-impl
+           [org.eclipse.aether.impl ArtifactResolver VersionRangeResolver RemoteRepositoryManager]
+           [org.eclipse.aether.internal.impl DefaultRemoteRepositoryManager]
+           ;; maven-resolver-spi
+           [org.eclipse.aether.spi.locator ServiceLocator]))
 
 (set! *warn-on-reflection* true)
 
@@ -88,7 +87,7 @@
 
 (defmethod ext/coord-deps :pom
   [_lib {:keys [deps/root] :as coord} _mf config]
-  (let [pom (jio/file root "pom.xml")
+  (let [pom (fs/file root "pom.xml")
         model (read-model-file pom config)]
     (model-deps model)))
 

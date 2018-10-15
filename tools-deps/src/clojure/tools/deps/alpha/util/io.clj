@@ -7,11 +7,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.tools.deps.alpha.util.io
-  (:require
-    [clojure.edn :as edn]
-    [clojure.java.io :as jio])
-  (:import
-    [java.io FileReader PushbackReader]))
+  (:require [clojure.edn :as edn]
+            [clojure.java.io :as jio]
+            [me.raynes.fs :as fs])
+  (:import [java.io FileReader PushbackReader]))
 
 (defn printerrln
   "println to *err*"
@@ -24,7 +23,7 @@
   An empty file will return nil."
   [f]
   (let [EOF (Object.)
-        fi (jio/file f)]
+        fi (fs/file f)]
     (with-open [rdr (PushbackReader. (FileReader. fi))]
       (let [val (edn/read {:eof EOF} rdr)]
         (if (identical? EOF val)
@@ -32,7 +31,7 @@
           (if (not (identical? EOF (edn/read {:eof EOF} rdr)))
             (let [file-name (.getCanonicalPath fi)]
               (throw (ex-info (str "Invalid file, expected edn to contain a single map: " file-name)
-                       {:file file-name})))
+                              {:file file-name})))
             val))))))
 
 (defn write-file

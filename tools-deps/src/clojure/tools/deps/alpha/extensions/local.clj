@@ -8,16 +8,17 @@
 
 (ns clojure.tools.deps.alpha.extensions.local
   (:require
-    [clojure.java.io :as jio]
-    [clojure.string :as str]
-    [clojure.tools.deps.alpha.extensions :as ext]
-    [clojure.tools.deps.alpha.extensions.pom :as pom])
+   [clojure.java.io :as jio]
+   [me.raynes.fs :as fs]
+   [clojure.string :as str]
+   [clojure.tools.deps.alpha.extensions :as ext]
+   [clojure.tools.deps.alpha.extensions.pom :as pom])
   (:import
-    [java.io File IOException]
-    [java.net URL]
-    [java.util.jar JarFile JarEntry]
-    ;; maven-builder-support
-    [org.apache.maven.model.building UrlModelSource]))
+   [java.io File IOException]
+   [java.net URL]
+   [java.util.jar JarFile JarEntry]
+   ;; maven-builder-support
+   [org.apache.maven.model.building UrlModelSource]))
 
 (defmethod ext/dep-id :local
   [lib {:keys [local/root] :as coord} config]
@@ -32,10 +33,11 @@
 
 (defmethod ext/manifest-type :local
   [lib {:keys [local/root deps/manifest] :as coord} config]
-  (cond
-    manifest {:deps/manifest manifest :deps/root root}
-    (.isFile (jio/file root)) {:deps/manifest :jar, :deps/root root}
-    :else (ext/detect-manifest root)))
+  (let [root* (fs/file root)]
+    (cond
+      manifest {:deps/manifest manifest :deps/root root}
+      (.isFile root*) {:deps/manifest :jar, :deps/root root*}
+      :else (ext/detect-manifest root))))
 
 (defmethod ext/coord-summary :local [lib {:keys [local/root]}]
   (str lib " " root))
@@ -55,7 +57,7 @@
 
 (defmethod ext/coord-deps :jar
   [lib {:keys [local/root] :as coord} _manifest config]
-  (let [jar (JarFile. (jio/file root))]
+  (let [jar (JarFile. (fs/file root))]
     (if-let [path (find-pom jar)]
       (let [url (URL. (str "jar:file:" root "!/" path))
             src (UrlModelSource. url)

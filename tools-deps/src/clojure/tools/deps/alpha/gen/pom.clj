@@ -12,7 +12,8 @@
             [clojure.data.xml.tree :as tree]
             [clojure.data.xml.event :as event]
             [clojure.zip :as zip]
-            [clojure.tools.deps.alpha.util.io :refer [printerrln]])
+            [clojure.tools.deps.alpha.util.io :refer [printerrln]]
+            [me.raynes.fs :as fs])
   (:import [java.io File Reader]
            [clojure.data.xml.node Element]))
 
@@ -123,14 +124,14 @@
 (defn sync-pom
   [{:keys [deps paths :mvn/repos] :as c} ^File dir]
   (let [repos (remove #(= "https://repo1.maven.org/maven2/" (-> % val :url)) repos)
-        pom-file (jio/file dir "pom.xml")
+        pom-file (fs/file dir "pom.xml")
         pom (if (.exists pom-file)
               (with-open [rdr (jio/reader pom-file)]
                 (-> rdr
-                  parse-xml
-                  (replace-deps deps)
-                  (replace-paths paths)
-                  (replace-repos repos)))
+                    parse-xml
+                    (replace-deps deps)
+                    (replace-paths paths)
+                    (replace-repos repos)))
               (gen-pom deps paths repos (.. dir getCanonicalFile getName)))]
     (spit pom-file (xml/indent-str pom))))
 

@@ -8,13 +8,14 @@
 
 (ns clojure.tools.deps.alpha.extensions.deps
   (:require
-    [clojure.java.io :as jio]
-    [clojure.tools.deps.alpha.extensions :as ext]
-    [clojure.tools.deps.alpha.reader :as reader]))
+   [me.raynes.fs :as fs]
+   [clojure.java.io :as jio]
+   [clojure.tools.deps.alpha.extensions :as ext]
+   [clojure.tools.deps.alpha.reader :as reader]))
 
 (defn- deps-map
   [config dir]
-  (let [f (jio/file dir "deps.edn")]
+  (let [f (fs/file dir "deps.edn")]
     (if (.exists f)
       (reader/merge-deps [config (reader/slurp-deps f)])
       config)))
@@ -26,6 +27,6 @@
 (defmethod ext/coord-paths :deps
   [_lib {:keys [deps/root] :as coord} _mf config]
   (into []
-    (map #(.getAbsolutePath (jio/file root %)))
-    (:paths (deps-map config root))))
+        (map #(.getCanonicalPath (fs/file root %)))
+        (:paths (deps-map config root))))
 

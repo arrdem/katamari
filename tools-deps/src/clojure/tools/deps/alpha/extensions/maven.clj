@@ -7,21 +7,20 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.tools.deps.alpha.extensions.maven
-  (:require
-    [clojure.java.io :as jio]
-    [clojure.string :as str]
-    [clojure.tools.deps.alpha.extensions :as ext]
-    [clojure.tools.deps.alpha.util.maven :as maven])
-  (:import
-    [java.io File]
+  (:require [clojure.java.io :as jio]
+            [clojure.string :as str]
+            [clojure.tools.deps.alpha.extensions :as ext]
+            [clojure.tools.deps.alpha.util.maven :as maven]
+            [me.raynes.fs :as fs])
+  (:import [java.io File]
 
-    ;; maven-resolver-api
-    [org.eclipse.aether RepositorySystem RepositorySystemSession]
-    [org.eclipse.aether.resolution ArtifactRequest ArtifactDescriptorRequest VersionRangeRequest]
+           ;; maven-resolver-api
+           [org.eclipse.aether RepositorySystem RepositorySystemSession]
+           [org.eclipse.aether.resolution ArtifactRequest ArtifactDescriptorRequest VersionRangeRequest]
 
-    ;; maven-resolver-util
-    [org.eclipse.aether.util.version GenericVersionScheme]
-    ))
+           ;; maven-resolver-util
+           [org.eclipse.aether.util.version GenericVersionScheme]
+           ))
 
 (set! *warn-on-reflection* true)
 
@@ -43,10 +42,10 @@
 (defmethod ext/lib-location :mvn
   [lib {:keys [mvn/version]} {:keys [mvn/repos mvn/local-repo]}]
   {:base (or local-repo maven/default-local-repo)
-   :path (.getPath ^File
-           (apply jio/file
-             (concat (str/split (or (namespace lib) (name lib)) #"\.")
-               [(name lib) version])))
+   :path (->> (concat (str/split (or (namespace lib) (name lib)) #"\.")
+                      [(name lib) version])
+              ^File (apply fs/file)
+              (.getCanonicalPath))
    :type :mvn})
 
 (defmethod ext/dep-id :mvn
@@ -125,24 +124,23 @@
 
   ;; get specific classifier
   (ext/coord-paths 'org.jogamp.gluegen/gluegen-rt {:mvn/version "2.3.2" :classifier "natives-linux-amd64"}
-    :mvn {:mvn/repos maven/standard-repos})
+                   :mvn {:mvn/repos maven/standard-repos})
 
   ;; get multiple classifiers
   (ext/coord-paths 'org.jogamp.gluegen/gluegen-rt {:mvn/version "2.3.2" :classifier ["" "natives-linux-amd64"]}
-    :mvn {:mvn/repos maven/standard-repos})
+                   :mvn {:mvn/repos maven/standard-repos})
 
   ;; deps for multiple classifier
   (ext/coord-deps 'org.clojure/tools.reader {:mvn/version "1.3.0" :classifier ["" "aot"]}
-    :mvn {:mvn/repos maven/standard-repos})
+                  :mvn {:mvn/repos maven/standard-repos})
 
   (parse-version {:mvn/version "1.1.0"})
 
   (ext/compare-versions {:mvn/version "1.1.0-alpha10"} {:mvn/version "1.1.0-beta1"})
 
   (ext/coord-deps 'org.clojure/clojure {:mvn/version "1.10.0-master-SNAPSHOT"} :mvn
-    {:mvn/repos (merge maven/standard-repos
-                  {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}})})
+                  {:mvn/repos (merge maven/standard-repos
+                                     {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}})})
 
   (def rr (maven/remote-repo ["sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}]))
   )
-
