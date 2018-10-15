@@ -14,4 +14,4 @@
       (s/conformer
        (fn [v#]
          (if-not (= ::s/invalid v#)
-           (:kvs v#) ::s/invalid))))))
+           (assoc (:kvs v#) :type (:type v#)) ::s/invalid))))))

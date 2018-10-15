@@ -12,11 +12,16 @@
   qualified-symbol?)
 
 (s/def ::def
-  (s/cat :sym #{'deftarget}
-         :name ::resolved-target-identifier
-         :docstring (s/? string?)
-         :metadata (s/? map?)
-         :target ::target))
+  (s/and
+   (s/cat :sym #{'deftarget}
+          :name ::resolved-target-identifier
+          :docstring (s/? string?)
+          :metadata (s/? map?)
+          :target ::target)
+   (s/conformer
+    (fn [v]
+      (if (= ::s/invalid v) v
+          (merge (dissoc v :target :sym) (:target v)))))))
 
 ;; Targets may have paths - a list of paths to be processed
 (s/def ::paths

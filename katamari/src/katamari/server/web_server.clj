@@ -10,6 +10,7 @@
             [ring.util.response :as resp]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.middleware.json :refer [wrap-json-response]]
+            [ring.middleware.stacktrace :refer [wrap-stacktrace]]
             [ring.middleware.session :as session]
             [katamari.conf :as conf]
             ;; The embedded nREPL server
@@ -17,7 +18,7 @@
             ;; Tasks
             [katamari.server.tasks :as t]
             [katamari.server.tasks.core :as t.c]
-            [katamari.server.tasks.tools-deps :as t.tdeps]))
+            [katamari.server.tasks.roll :as t.roll]))
 
 ;;;; Config crap
 
@@ -50,7 +51,8 @@
        t.c/handle-stop-server
 
        ;; :thinking:
-       t.tdeps/handle-classpath
+       t.roll/handle-classpath
+       t.roll/wrap-buildgraph
 
        ;; Handlers that hack the request
        t.c/wrap-list
@@ -95,6 +97,7 @@
         jetty-inst (-> #'+app+
                        session/wrap-session
                        wrap-json-response
+                       wrap-stacktrace
                        (run-jetty jetty-cfg))]
     (reset! +instance+ jetty-inst)))
 
@@ -111,12 +114,13 @@
   (log/info "Loading config file" config-file)
   (let [cfg (conf/load config-file key-fn)]
     (log/info "Loaded config" cfg)
-    (start-web-server! cfg)
-    (start-nrepl-server! cfg)
     (doseq [path (:server-extensions cfg)]
       (try (load path)
+           (log/infof "Loaded extension %s" path)
            (catch Exception e
-             (log/error e "Failed to load extension!"))))))
+             (log/error e "Failed to load extension!"))))
+    (start-web-server! cfg)
+    (start-nrepl-server! cfg)))
 
 (comment
   (start-web-server!
