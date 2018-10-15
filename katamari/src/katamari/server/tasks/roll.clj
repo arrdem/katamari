@@ -55,19 +55,29 @@
       "classpath"
       (-> (let [opts (-> (rest request)
                          (mkcp/parse-opts)
-                         (update :config-files (partial concat (:deps-defaults-files config)))
+                         (update :config-files (partial cons
+                                                        (fs/file (:repo-root config)
+                                                                 (:deps-defaults-file config))))
                          (update :config-data #(or % (deps-parser/parse-config
-                                                      (:deps-defaults-data config))))
-                         (update :aliases conj ::roll))
-                _ (prn opts)
+                                                      (:deps-defaults-data config)))))
                 deps (-> (mkcp/combine-deps-files opts)
+                         ;; Splice in CLI targets
                          (assoc :deps (zipmap (map symbol (:arguments opts)) (repeat nil)))
-                         (assoc-in [:aliases ::roll :default-deps]
+                         ;; Inject the defaults "profile"
+                         (assoc-in [:aliases ::defaults]
+                                   (deps-parser/parse-config
+                                    (slurp
+                                     (fs/file (:repo-root config)
+                                              (:deps-resolve-file config)))))
+                         ;; Inject the targets "profile"
+                         (assoc-in [:aliases ::roll :override-deps]
                                    (buildgraph->default-deps
-                                    (:buildgraph config))))
-                _ (prn deps)]
+                                    (:buildgraph config))))]
             (der/with-graph (:buildgraph config)
-              (mkcp/create-classpath deps opts)))
+              (mkcp/create-classpath
+               deps
+               ;; Bolt on our two magical internal profiles
+               (update opts :aliases (partial concat [::defaults ::roll])))))
           :classpath
           resp/response
           (resp/status 200))
