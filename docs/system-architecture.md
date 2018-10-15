@@ -12,5 +12,12 @@ Furthermore in order to take advantage of graalvm or other Java optimizing tools
 This makes boot more tractable, but boot was designed and optimized for solving the problem of updating built resources such as `less` files and `cljs` to be served in a browser.
 Because in the context of a webapp all these resources must converge in the application, boot is not designed for a concept of targets or to support "partial" builds.
 
-Katamari is designed as a small shell script, which interacts with a persistent JVM server.
+Katamari is designed as a small shell script - `kat`, which interacts with a persistent JVM server.
 The shell script serves as a shim, which starts a server instance if there isn't an active one, and then uses the server to perform any required actions.
+
+Beyond this, Katamari's architecture is currently somewhat murky.
+As the Katamari server is intended to be durable, while it embeds a REPL (including CIDER), it's not really an appropriate vehicle from which to execute build steps.
+These would seem more naturally and more interactively placed close to or even in the user's shell, rather than having the remote server opaquely and non-interactively execute many commends.
+
+There would also seem to be cause to enable users to write their own shell scripts which interact with the Katamari server.
+For instance one could imagine a `kat status` task, implemented as a shell script which uses the normal `kat` machinery to inspect the server, and can avoid the default server starting behavior.
