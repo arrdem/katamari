@@ -1,4 +1,7 @@
+;; An implicit default profile which gets fed into deps.edn as a resolve alias.
 ;;
+;; This file should be used for version pinning and overrides where required.
+
 {:default-deps
  {;; Core + Contrib
   org.clojure/clojure {:mvn/version "1.9.0"}

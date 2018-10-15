@@ -1,4 +1,12 @@
+;; An implicit defaults file which is passed to deps.edn as more deps data.
 ;;
+;; This file should be used to configure any Maven or other repositories, to provide global
+;; dependencies, aliases, or anything else you may choose to inject globally.
+;;
+;; WARNING: As paths are only considered when profiles are being applied in the context of a
+;; particular working directory or target set, `:paths` as listed here will only provide a default
+;; `:paths` list to be considered when expanding targets. Probably not worth messing with.
+
 {:mvn/repos
  {
   "central" {:url "https://repo1.maven.org/maven2/"}
