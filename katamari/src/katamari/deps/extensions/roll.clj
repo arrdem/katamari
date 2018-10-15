@@ -29,7 +29,12 @@
   [lib coord _manifest config]
   (get-in *buildgraph* [:targets lib :deps]))
 
+;; FIXME (arrdem 2018-10-15):
+;; 
+;;   This probably needs to interact with compilation - only trivial targets (eg. clojure-library)
+;;   don't need to compile files/paths at all. A hypothetical `lessc` target, or the actual
+;;   java-library target would need to at least check the product cache and probably compile before
+;;   it could return a sequence of paths.
 (defmethod ext/coord-paths :roll
   [lib coord _manifest _config]
   (get-in *buildgraph* [:targets lib :paths]))
-
