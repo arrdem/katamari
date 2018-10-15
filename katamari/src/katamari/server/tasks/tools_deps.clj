@@ -58,9 +58,9 @@
       "classpath"
       (-> {:msg (:classpath (fs/with-cwd (:cwd config)
                               (-> (combine-deps-and-config
-                                   {:config-files [(fs/file (:repo-root config)
-                                                            (:deps-defaults-file config))
-                                                   "deps.edn"]
+                                   {:config-files (conj (map (partial fs/file (:repo-root config))
+                                                             (:deps-defaults-files config))
+                                                        "deps.edn")
                                     :config-data (edn/read-string (:deps-defaults-data config))})
                                   (create-classpath {}))))}
           resp/response
