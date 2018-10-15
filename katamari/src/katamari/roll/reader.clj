@@ -87,9 +87,10 @@
        (reduce conj! % new-files)
        (persistent! %))}))
 
-(defn refresh-whole-buildgraph
+(defn refresh-buildgraph-for-changes
   "Given a repository and a previous build graph, refresh any targets
-  whose definitions could have changed."
+  whose definitions could have changed as observed via mtime or
+  content hash."
   [{:keys [repo-root] :as config}
    {old-files :rollfiles
     old-targets :targets
