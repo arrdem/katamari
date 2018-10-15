@@ -1,11 +1,7 @@
-{
-  :aliases {
-    :deps {:extra-deps {org.clojure/tools.deps.alpha {:mvn/version "0.5.452"}}}
-    :test {:extra-paths ["test"]}
+;;
+{:mvn/repos
+ {
+  "central" {:url "https://repo1.maven.org/maven2/"}
+  "clojars" {:url "https://repo.clojars.org/"}
   }
-
-  :mvn/repos {
-    "central" {:url "https://repo1.maven.org/maven2/"}
-    "clojars" {:url "https://repo.clojars.org/"}
-  }
-}
+ }
