@@ -122,7 +122,8 @@
                                 old-shasum :sha256sum} old-meta]
                            (when (or (not= old-mtime (.lastModified rollfile))
                                      (not= old-shasum (hash/sha256-file rollfile)))
-                             [rollfile path]))))))
+                             [rollfile path]))
+                         [rollfile path]))))
              ((juxt (partial map first) (partial map second))))]
     (refresh* config previous-graph changed-rollfiles changed-paths)))
 
