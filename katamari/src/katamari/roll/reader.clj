@@ -1,7 +1,9 @@
 (ns katamari.roll.reader
-  "Tools for reading Rollfiles and providing partial parsing of a project/repo's dependency graph."
+  "Tools for reading Rollfiles and providing partial parsing and
+  refreshing of a project/repo's dependency graph."
   (:require [me.raynes.fs :as fs]
             [clojure.java.io :as jio]
+            [clojure.data :refer [diff]]
             [katamari.roll.specs :as rs]
             [clojure.spec.alpha :as s]
             [pandect.algo.sha256 :as hash])
@@ -74,6 +76,7 @@
          new-files :rollfiles}
         (->> changed-rollfiles
              (map (partial read-rollfile config))
+             (apply merge-with error-on-conflicts)
              targets-to-buildgraph)]
     {:targets
      (as-> (transient old-targets) %
@@ -85,7 +88,22 @@
      (as-> (transient old-files) %
        (reduce dissoc! % changed-paths)
        (reduce conj! % new-files)
-       (persistent! %))}))
+       (persistent! %))
+
+     ;; Overview of changes
+     :diff
+     (let [[added-targets deleted-targets updated-targets]
+           (diff (set (keys new-targets)) (set changed-targets))
+
+           [added-paths deleted-paths changed-paths]
+           (diff (set (keys new-files)) (set changed-paths))]
+       {:added-targets added-targets
+        :deleted-targets deleted-targets
+        :changed-targets changed-targets
+
+        :added-rollfiles added-paths
+        :changed-rolfiles changed-paths
+        :deleted-rollfiles deleted-paths})}))
 
 (defn refresh-buildgraph-for-changes
   "Given a repository and a previous build graph, refresh any targets
@@ -99,7 +117,7 @@
         (->> (find-rollfiles (fs/file repo-root))
              (keep (fn [^File rollfile]
                      (let [path (.getCanonicalPath rollfile)]
-                       (if-let [old-meta (get path old-files)]
+                       (if-let [old-meta (get old-files path)]
                          (let [{old-mtime :mtime
                                 old-shasum :sha256sum} old-meta]
                            (when (or (not= old-mtime (.lastModified rollfile))
