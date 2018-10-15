@@ -1,9 +1,11 @@
 ;; -*- mode: clojure; -*-
+
 (deftarget org.clojure/clojure-tools
   (clojure-library
-   :paths ["src"]
+   :paths
+   ["src"]
 
    :deps
-   {org.clojure/clojure {:mvn/version "1.9.0"}
+   {org.clojure/clojure nil
     org.clojure/tools.deps.alpha nil}))
 

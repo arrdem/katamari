@@ -1,4 +1,5 @@
 ;; -*- mode: clojure; -*-
+
 (deftarget me.arrdem/lib-katamari
   (clojure-library
    :paths
@@ -6,23 +7,22 @@
     "resources"]
 
    :deps
-   {org.clojure/clojure {:mvn/version "1.9.0"}
+   {org.clojure/clojure nil
     org.clojure/tools.deps.alpha nil
     org.clojure/clojure-tools nil
-    org.clojure/tools.logging {:mvn/version "0.5.0-alpha"}
+    org.clojure/tools.logging nil
 
-    ring/ring {:mvn/version "1.7.0-RC1"}
-    ring/ring-jetty-adapter {:mvn/version "1.7.0-RC1"}
-    ring/ring-json {:mvn/version "0.5.0-beta1"}
+    ring/ring nil
+    ring/ring-jetty-adapter nil
+    ring/ring-json nil
 
-    compojure/compojure {:mvn/version "1.6.1"}
-    cheshire/cheshire {:mvn/version "5.8.0"}
-    instaparse/instaparse {:mvn/version"1.4.9"}
-    io.replikativ/hasch {:mvn/version "0.3.4"}
+    compojure/compojure nil
+    cheshire/cheshire nil
+    instaparse/instaparse nil
 
     ;; Embedded development
-    nrepl/nrepl {:mvn/version "0.4.0"}
-    cider/cider-nrepl {:mvn/version "0.18.0"}}
+    nrepl/nrepl nil
+    cider/cider-nrepl nil}
 
    :profiles
    {}))
