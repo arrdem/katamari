@@ -63,8 +63,11 @@ if [ ! -f "${KAT_CONFIG}" ]; then
         mkdir "${KAT_SERVER_WORK_DIR}"
     fi
 
-    wget https://github.com/arrdem/katamari/releases/download/v0.0.1/katamari-0.0.1.jar \
-         -O "${KAT_SERVER_WORK_DIR}/bootstrap.jar"
+    bootstrap_jar="${KAT_SERVER_WORK_DIR}/bootstrap.jar"
+    if [ ! -f "${bootstrap_jar}" ]; then
+        curl -L https://github.com/arrdem/katamari/releases/download/v0.0.1/katamari-0.0.1.jar \
+             --output "${bootstrap_jar}"
+    fi
 
     cat <<EOF > "${KAT_CONFIG}"
 # Katamari's config file
@@ -91,7 +94,7 @@ server_ns=katamari.server.web-server
 #
 # FIXME (arrdem 2018-09-29):
 #   How do I get away from having to code this? Bootstrapping without a dist is HARD
-server_classpath=$(realpath "${KAT_SERVER_WORK_DIR}/bootstrap.jar")
+server_classpath=$(realpath "${bootstrap_jar}")
 
 # The log to record build history and any errors
 server_log_file=kat.log
