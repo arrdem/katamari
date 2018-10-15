@@ -3,7 +3,7 @@
 
 Katamari is designed in response to `clojure-tools`, `boot` and `leiningen`.
 
-`clojure-tools` and `lein` are implemented as Clojure + JVM applications, which start and stop.
+`clj`, `clojure` and `lein` are implemented as Clojure + JVM applications, which start and stop.
 This means that in general users suffer all the pains of starting Clojure based systems and really don't see many of the benefits.
 Clojure itself takes a second or two to load on average, and every additional dependency just adds weight.
 Furthermore in order to take advantage of graalvm or other Java optimizing tools it's imperative to strip the dependencies of these tools down which prevents their implementations from leveraging library ecosystems.
