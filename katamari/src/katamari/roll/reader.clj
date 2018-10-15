@@ -107,14 +107,14 @@
              ((juxt (partial map first) (partial map second))))]
     (refresh* config previous-graph changed-rollfiles changed-paths)))
 
-(defn refresh-buildgraph-for-target
-  "Given a repository, a previous build graph, and a target in that
-  graph, refresh only the parts of the graph required to rebuild the
-  selected target."
+(defn refresh-buildgraph-for-targets
+  "Given a repository, a previous build graph, and a list of targets in
+  that graph, refresh only the parts of the graph required to rebuild
+  the selected targets."
   [config
    {old-files :rollfiles
     old-targets :targets
     :as previous-graph}
-   refresh-target]
-  (let [refresh-path (get-in previous-graph [:targets refresh-target :rollfile])]
-    (refresh* config previous-graph [(fs/file refresh-path)] [refresh-path])))
+   refresh-targets]
+  (let [refresh-paths (into #{} (map #(get-in previous-graph [:targets % :rollfile])) refresh-targets)]
+    (refresh* config previous-graph (map fs/file refresh-paths) refresh-paths)))
