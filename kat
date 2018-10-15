@@ -75,6 +75,11 @@ if [ -z "${KAT_SERVER_START_SEC}" ]; then
     KAT_SERVER_START_SEC=$(_get_conf "${KAT_CONFIG}" server_start_sec 15)
 fi
 
+# What namespace to boot
+if [ -z "${KAT_SERVER_NS}" ]; then
+    KAT_SERVER_NS=$(_get_conf "${KAT_CONFIG}" server_ns 'katamari.server.web-server')
+fi
+
 # Where do the logs go
 if [ -z "${KAT_SERVER_LOG_FILE}" ]; then
     KAT_SERVER_LOG_FILE=$(_get_conf "${KAT_CONFIG}" server_log_file kat.log)
@@ -113,7 +118,7 @@ $(date)] SERVER RESTARTING
 EOF
 
     CWD=${KAT_SERVER_WORK_DIR} "${JAVA_CMD}" -cp "${KAT_SERVER_CP}" \
-       clojure.main -m katamari.web-server "${KAT_CONFIG}" \
+       clojure.main -m "${KAT_SERVER_NS}" "${KAT_CONFIG}" \
        >> "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}" 2>&1 &
     KAT_SERVER_PID="$!"
 

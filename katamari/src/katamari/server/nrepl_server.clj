@@ -1,4 +1,4 @@
-(ns katamari.nrepl-server
+(ns katamari.server.nrepl-server
   (:require [nrepl.server :refer [start-server stop-server]]))
 
 (defonce +instance+

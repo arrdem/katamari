@@ -1,4 +1,4 @@
-(ns katamari.tasks.tools-deps
+(ns katamari.server.tasks.tools-deps
   (:require [clojure.string :as str]
             [clojure.edn :as edn]
             [clojure.java.io :as jio]

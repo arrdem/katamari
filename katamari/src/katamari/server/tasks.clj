@@ -1,4 +1,4 @@
-(ns katamari.tasks
+(ns katamari.server.tasks
   "Helpers for defining Katamari task middlewares."
   (:require [clojure.string :as str]
             [ring.util.response :as resp]))

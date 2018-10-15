@@ -1,4 +1,4 @@
-(ns katamari.tasks.core
+(ns katamari.server.tasks.core
   "Core Katamari tasks.
 
   You could turn off or do without these, but it'd be weird."
