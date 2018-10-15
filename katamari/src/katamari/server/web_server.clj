@@ -112,7 +112,11 @@
   (let [cfg (conf/load config-file key-fn)]
     (log/info "Loaded config" cfg)
     (start-web-server! cfg)
-    (start-nrepl-server! cfg)))
+    (start-nrepl-server! cfg)
+    (doseq [path (:server-extensions cfg)]
+      (try (load path)
+           (catch Exception e
+             (log/error e "Failed to load extension!"))))))
 
 (comment
   (start-web-server!
