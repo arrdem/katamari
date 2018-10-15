@@ -3,6 +3,7 @@
  
  :deps {org.clojure/clojure {:mvn/version "1.9.0"}
         org.clojure/tools.deps {:local/root "../tools-deps"}
+        org.clojure/clojure-tools {:local/root "../clojure-tools"}
         org.clojure/tools.logging {:mvn/version "0.5.0-alpha"}
 
         ring/ring {:mvn/version "1.7.0-RC1"}

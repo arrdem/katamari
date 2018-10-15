@@ -12,9 +12,12 @@
             [ring.middleware.json :refer [wrap-json-response]]
             [ring.middleware.session :as session]
             [katamari.conf :as conf]
+            ;; The embedded nREPL server
+            [katamari.nrepl-server :refer [start-nrepl-server!]]
+            ;; Tasks
             [katamari.tasks :refer [root-task-handler]]
             [katamari.tasks.core :as t.c]
-            [katamari.nrepl-server :refer [start-nrepl-server!]]))
+            [katamari.tasks.tools-deps :as t.tdeps]))
 
 ;;;; Config crap
 
@@ -45,6 +48,8 @@
        t.c/handle-start-server
        t.c/handle-show-request
        t.c/handle-stop-server
+
+       t.tdeps/handle-classpath
 
        ;; Handlers that hack the request
        t.c/wrap-list
