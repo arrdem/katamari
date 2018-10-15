@@ -259,16 +259,42 @@ EOF
           )
     status=$?
 
-    # if [ ! -z $(echo "$output" | jq "if has(.msg) then .msg else \"\" end") ]; then
-    #     echo "$output" | jq -r ".msg"
-    # else
-    #     echo "$output" | jq . 2>/dev/null || 
-    # fi
+    case "${KAT_OUTPUT_FORMAT:-message}" in
+        raw)
+            echo "${output}"
+            ;;
+        json)
+            echo "${output}" | jq -M .
+            ;;
+        message)
+            echo "${output}" | jq -r .msg
+            ;;
+    esac
 
-    echo "$output"
+    return "${status}"
 }
 
 ## Core behavior
+
+while true; do
+    case "${1}" in
+        -r|--raw)
+            KAT_OUTPUT_FORMAT=raw
+            shift
+            ;;
+        -j|--json)
+            KAT_OUTPUT_FORMAT=json
+            shift
+            ;;
+        -m|--message)
+            KAT_OUTPUT_FORMAT=message
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done    
 
 # Try to start the server if one isn't active.
 # Note that _start_server hard exits if the server fails to boot, so the script will die there
