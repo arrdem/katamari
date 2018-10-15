@@ -41,7 +41,9 @@
       (throw (io-err "Expected edn map in: %s" f)))))
 
 (defn- canonicalize-sym [s]
-  (if (and (symbol? s) (nil? (namespace s)))
+  ;; FIXME (arrdem 2018-10-15):
+  ;;   The :group thing is a dirty hack. There's gotta be a better way.
+  (if (and (symbol? s) (nil? (namespace s)) (not (:group (meta s))))
     (as-> (name s) n (symbol n n))
     s))
 

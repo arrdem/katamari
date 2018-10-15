@@ -167,8 +167,12 @@
 (defn- use-dep [default-deps override-deps [lib coord]]
   (vector lib
           (or (get override-deps lib)
+              (if-let [n (namespace lib)]
+                (get override-deps (symbol n)))
               coord
-              (get default-deps lib))))
+              (get default-deps lib)
+              (if-let [n (namespace lib)]
+                (get default-deps (symbol n))))))
 
 (defn- expand-deps
   [deps default-deps override-deps config verbose]
@@ -197,7 +201,7 @@
                                                        lib (ext/dep-id lib coord config)
                                                        (if-not (contains? visited dep)
                                                          "(enqueued)" "(seen)")))
-                                           true)))
+                                            true)))
                                 doall)
                   use-path (conj parents lib)
                   child-paths (map #(conj use-path %) children)]
