@@ -23,6 +23,7 @@
 
   instaparse/instaparse {:mvn/version"1.4.9"}
   io.replikativ/hasch {:mvn/version "0.3.4"}
+  pandect/pandect {:mvn/version "0.6.1"}
 
   me.raynes/fs {:mvn/version "1.4.6"}
 

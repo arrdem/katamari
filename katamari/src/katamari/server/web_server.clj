@@ -51,6 +51,7 @@
        t.c/handle-stop-server
 
        ;; :thinking:
+       t.roll/handle-uberjar
        t.roll/handle-classpath
        t.roll/wrap-buildgraph
 

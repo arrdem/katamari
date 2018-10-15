@@ -12,12 +12,16 @@
             [clojure.tools.deps.alpha.script.make-classpath :as mkcp]
             [clojure.tools.deps.alpha.script.parse :as deps-parser]
 
-            ;;katamari
+            ;; Katamari
             [katamari.roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
             [katamari.deps.extensions.roll :as der]
 
             ;; Ring
-            [ring.util.response :as resp]))
+            [ring.util.response :as resp]
+
+            [hf.depstar.uberjar :as ds])
+  (:import [java.nio.file Files]
+           [java.nio.file.attribute FileAttribute]))
 
 ;;;; Handlers
 
@@ -81,5 +85,43 @@
           :classpath
           resp/response
           (resp/status 200))
+
+      (handler config stack request))))
+
+(defn handle-uberjar
+  {:kat/request-name "uberjar"
+   :kat/doc "Produce an uberjar, according to the target's config"}
+  [handler]
+  (fn [config stack request]
+    (case (first request)
+      "meta"
+      (update (handler config stack request)
+              :body conj (meta #'handle-uberjar))
+
+      "uberjar"
+      (if-let [target (second request)]
+        (if-let [target-coord (get-in config [:buildgraph :targets (symbol target)])]
+          (let [classpath (-> (stack config stack (list "classpath" "--" target))
+                              :body)
+                target-dir (fs/file (:repo-root config)
+                                    (:target-dir config))
+                jar-name (:jar-name target-coord (str (name (:name target-coord)) ".jar"))
+                jar-file (fs/file target-dir jar-name)
+                jar-path (.toPath jar-file)
+                msgs (with-out-str
+                       (binding [*err* *out*]
+                         (let [tmp (Files/createTempDirectory "uberjar" (make-array FileAttribute 0))]
+                           (run! #(ds/copy-source % tmp {}) (str/split classpath #":"))
+                           (ds/write-jar tmp jar-path))))]
+            (-> {:msg msgs
+                 :jar-path (.getCanonicalPath jar-file)}
+                resp/response
+                (resp/status 200)))
+          (-> "Could not produce an uberjar, no target coordinate was loaded!"
+              resp/response
+              (resp/status 400)))
+        (-> "Could not produce an uberjar, no target provided!"
+            resp/response
+            (resp/status 400)))
 
       (handler config stack request))))

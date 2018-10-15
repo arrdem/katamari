@@ -87,7 +87,7 @@ fi
 
 # Where do the cache, lockfiles and other state live
 if [ -z "${KAT_SERVER_WORK_DIR}" ]; then
-    KAT_SERVER_WORK_DIR=$(_get_conf "${KAT_CONFIG}" server_work_dir)
+    KAT_SERVER_WORK_DIR="${KAT_REPO_ROOT}/"$(_get_conf "${KAT_CONFIG}" server_work_dir)
 fi
 
 ## Booting the server

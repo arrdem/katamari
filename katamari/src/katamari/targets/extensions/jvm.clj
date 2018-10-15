@@ -20,7 +20,11 @@
 (s/def ::manifest
   (s/map-of string? string?))
 
+(s/def ::jar-name
+  string?)
+
 (deftarget jarfile
   (s/keys* :req-un [::rs/deps]
-           :opt-un [::entry-point
+           :opt-un [::jar-name
+                    ::entry-point
                     ::manifest]))

@@ -15,9 +15,11 @@
     ring/ring nil
     ring/ring-jetty-adapter nil
     ring/ring-json nil
-
     compojure/compojure nil
     cheshire/cheshire nil
+
+    healthfinch/depstar nil
+    pandect/pandect nil
     instaparse/instaparse nil
 
     ;; Embedded development

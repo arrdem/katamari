@@ -3,4 +3,4 @@
 (deftarget healthfinch/depstar
   (clojure-library
    :paths ["src"]
-   :deps {org.clojure/clojure nil})
+   :deps {org.clojure/clojure nil}))
