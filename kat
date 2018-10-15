@@ -172,7 +172,7 @@ function _send_request() {
 {"repo_root":"${KAT_REPO_ROOT}",
  "user_root":"${HOME}",
  "config_file":"${KAT_CONFIG}",
- "pwd":"${PWD}",
+ "cwd":"${PWD}",
  "request":$args}
 EOF
           )
