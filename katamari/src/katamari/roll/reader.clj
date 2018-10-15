@@ -23,13 +23,16 @@
 
 (defn read-rollfile [{:keys [repo-root] :as config} ^File rollfile]
   (->> (read-all ((comp #(java.io.PushbackReader. %) jio/reader) rollfile))
-       (mapv #(if-let [data (s/explain-data ::rs/def %)]
-                (throw (ex-info "Unable to parse rollfile!"
-                                (merge data
-                                       (meta %)
-                                       {:file (.getCanonicalPath rollfile)
-                                        :repo repo-root})))
-                (s/conform ::rs/def %)))
+       (mapv (fn [read-data]
+               (if-let [explain (s/explain-data ::rs/def read-data)]
+                 (throw (ex-info "Unable to parse rollfile!"
+                                 (merge explain
+                                        (meta read-data)
+                                        {:file (.getCanonicalPath rollfile)
+                                         :repo repo-root})))
+                 (-> (s/conform ::rs/def read-data)
+                     (update :paths (partial map (comp #(.getCanonicalPath %)
+                                                       (partial fs/file (.getParent rollfile)))))))))
        (map (juxt :name
                   #(assoc % :rollfile (.getCanonicalPath rollfile))))
        (into {})))
