@@ -119,7 +119,7 @@ EOF
 
     CWD=${KAT_SERVER_WORK_DIR} "${JAVA_CMD}" -cp "${KAT_SERVER_CP}" \
        clojure.main -m "${KAT_SERVER_NS}" "${KAT_CONFIG}" \
-       >> "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}" 2>&1 &
+       2>&1 >> "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}" &
     KAT_SERVER_PID="$!"
 
     disown "${KAT_SERVER_PID}"
@@ -183,11 +183,13 @@ EOF
           )
     status=$?
 
-    if [ ! -z $(echo "$output" | jq "if has(.msg) then .msg else \"\" end") ]; then
-        echo "$output" | jq -r ".msg"
-    else
-        echo "$output" | jq .
-    fi
+    # if [ ! -z $(echo "$output" | jq "if has(.msg) then .msg else \"\" end") ]; then
+    #     echo "$output" | jq -r ".msg"
+    # else
+    #     echo "$output" | jq . 2>/dev/null || 
+    # fi
+
+    echo "$output"
 }
 
 ## Core behavior
