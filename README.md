@@ -62,9 +62,9 @@ In Leiningen, one could write the following `project.clj` -
 
 ```clj
 (defproject simple-app
-   :java-sources ["src/jvm/main"]
-   :sources ["src/clj/main"]
-   :dependencies [[org.clojure/clojure "1.9.0"]]
+  :java-sources ["src/jvm/main"]
+  :sources ["src/clj/main"]
+  :dependencies [[org.clojure/clojure "1.9.0"]]
 ```
 
 When Leiningen operates on this project, it will first use `javac` to produce the classfiles for your Java sources, and then do whatever you asked for in a classpath containing those classfiles, your Clojure sources and dependencies.
