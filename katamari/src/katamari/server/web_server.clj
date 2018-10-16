@@ -53,6 +53,7 @@
        ;; :thinking:
        t.roll/handle-uberjar
        t.roll/handle-classpath
+       t.roll/handle-list-targets
        t.roll/wrap-buildgraph
 
        ;; Handlers that hack the request

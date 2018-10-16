@@ -88,6 +88,24 @@
 
       (handler config stack request))))
 
+(defn handle-list-targets
+  {:kat/request-name "list-targets"
+   :kat/doc "Enumerate all the available Rollfile targets."}
+  [handler]
+  (fn [config stack request]
+    (case (first request)
+      "meta"
+      (update (handler config stack request)
+              :body conj (meta #'handle-list-targets))
+
+      "list-targets"
+      (-> (:buildgraph config)
+          (select-keys [:targets])
+          resp/response
+          (resp/status 200))
+
+      (handler config stack request))))
+
 (defn handle-uberjar
   {:kat/request-name "uberjar"
    :kat/doc "Produce an uberjar, according to the target's config"}
