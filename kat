@@ -43,9 +43,9 @@ fi
 
 # The kat repo root
 if [ -z "${KAT_REPO_ROOT}" ]; then
-    # FIXME (arrdem 2018-09-26):
-    #   This is a shitty and may not be reliable way to get the repo root
-    export KAT_REPO_ROOT=$(realpath $(git worktree list | awk '{print $1; exit}'))
+    # FIXME (reid.mckenzie 2018-10-16):
+    #   Decouple Kat from git's root?
+  export KAT_REPO_ROOT=$(realpath $(git rev-parse --show-toplevel))
 fi
 
 if [ -z "${KAT_CONFIG}" ]; then
