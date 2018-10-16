@@ -26,13 +26,13 @@ From the [releases](https://github.com/arrdem/katamari/releases/latest) page, do
 The `kat` script is self-bootstrapping.
 Place it somewhere on your path, I like `~/bin/kat`.
 
-Then from a git repo, run
+Then from within a git repo, run
 
 ```
-$ ./kat start-server
+$ kat start-server
 ```
 
-This will cause Katamari to self-bootstrap, downloading the latest server standalone jar and creating a couple files.
+This will prompt Katamari to self-bootstrap, downloading the latest server standalone jar and creating a couple files in the root of your repository.
 You'll see a `kat.conf`, a `kat-deps-defaults.edn` and a `kat-deps-resolve.edn`, as well as the new directories `.kat.d` and `target`.
 
 The `kat.conf` file is a simple key-value config file used to configure both the `kat` shell client, and consumed by the server when handling requests.
