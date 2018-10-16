@@ -72,11 +72,6 @@ if [ ! -f "${KAT_CONFIG}" ]; then
     cat <<EOF > "${KAT_CONFIG}"
 # Katamari's config file
 
-#### Java options
-
-# The command to be used when booting JVMS
-java_cmd=/usr/bin/java
-
 #### Server options
 
 server_http_port=3636
@@ -103,7 +98,7 @@ server_log_file=kat.log
 # This cache lives at the repo root
 server_work_dir=.kat.d
 
-# paths to (load) after application boot
+# (class)paths to (load) after application boot but before the server(s) start
 server_extensions=[
   /clojure/tools/deps/alpha/extensions/maven
   /clojure/tools/deps/alpha/extensions/local
@@ -116,8 +111,8 @@ server_extensions=[
 ### tools.deps
 
 # default config file(s)
-deps_defaults_file=deps-defaults.edn
-deps_resolve_file=deps-resolve.edn
+deps_defaults_file=kat-deps-defaults.edn
+deps_resolve_file=kat-deps-resolve.edn
 
 # optional EDN to bolt onto the value of the defaults
 deps_defaults_data={}
@@ -126,8 +121,38 @@ deps_defaults_data={}
 
 target_dir=target
 EOF
+
+    [ ! -f kat-deps-defaults.edn ] && cat <<EOF > kat-deps-defaults.edn
+;; An implicit defaults file which is passed to deps.edn as more deps data.
+;;
+;; This file should be used to configure any Maven or other repositories, to provide global
+;; dependencies, aliases, or anything else you may choose to inject globally.
+;;
+;; WARNING: As paths are only considered when profiles are being applied in the context of a
+;; particular working directory or target set, `:paths` as listed here will only provide a default
+;; `:paths` list to be considered when expanding targets. Probably not worth messing with.
+
+{:mvn/repos
+ {
+  "central" {:url "https://repo1.maven.org/maven2/"}
+  "clojars" {:url "https://repo.clojars.org/"}
+  }
+ }
+EOF
+
+    [ ! -f kat-deps-resolve.edn ] && cat <<EOF > kat-deps-resolve.edn
+;; Deps data which getsapplied as an always-on resolve alias.
+;;
+;; This file should be used for version pinning and overrides where required.
+
+{:default-deps
+ {org.clojure/clojure {:mvn/version "1.9.0"}
+  }
+ }
+EOF
+
+    [ ! -d target ] && mdir target
 fi
-    
 
 # Katamari's server port
 if [ -z "${KAT_SERVER_HTTP_PORT}" ]; then
@@ -294,7 +319,7 @@ while true; do
             break
             ;;
     esac
-done    
+done
 
 # Try to start the server if one isn't active.
 # Note that _start_server hard exits if the server fails to boot, so the script will die there
