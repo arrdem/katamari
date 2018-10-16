@@ -59,35 +59,6 @@ java_library(
   dependencies=["clojure"], # a reference to the "clojure" target above
   files=glob("src/jvm/**.java"),
 )
-
-# Our Clojure sources
-fileset(
-  name="foo-core-src",
-  dependencies=["clojure"],
-  files=glob("src/clj/**.cljc?"),
-)
-
-# Our Clojure sources as a library
-clojure_library(
-  name="foo-core",
-  dependencies=["clojure", "libfoo"],
-  files=glob("src/clj/**.cljc?"),
-)
-
-# Our shell-command produced resources, based on doing something to the foo-core-src fileset.
-shell_command(
-  name="gen-resources",
-  command=[....],
-  dependencies=["foo-core-src"],
-  files=glob("gen-resources/**"),
-)
-
-# Our application entirely
-java_binary(
-  name="foo",
-  entry_point="foo.main",
-  dependencies=["foo-core"],
-)
 ```
 
 Consider the `java_library` product.
@@ -107,6 +78,3 @@ A design goal is to be pluggable with respect to content hashing algorithms.
 In a C file for instance, whitespace changes and comment changes don't affect the interpretation of the source files by the compiler; consequently one could imagine writing a domain specific content hash operation which considers only the hash of non-lexical-whitespace in the file.
 Likewise for Lisp code, comments and whitespace are discarded.
 One could imagine content hashing the s-expression structure of the file to produce an identifier - or having a two step content hashing operation where straight file hashes are used to cache more precise content hashes.
-
-The precise build DSL which Katamari uses is up in the air, but it will be full blown Clojure, with targets and products registered as datastructures into a graph.
-Content hashing of the Katakari `Rollfiles` themselves allows for lazy re-analysis of the build graph, and the build graph itself defines its own invalidation conditions.
