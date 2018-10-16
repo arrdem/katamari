@@ -1,6 +1,9 @@
 (ns katamari.server.web-server
-  "A web server which makes it possible to boot Katamari once and amortize its startup cost across
+  "Katamari's API server.
+
+  A web server which makes it possible to boot Katamari once and amortize its startup cost across
   potentially many build or code evaluation requests."
+  {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.java.io :as jio]
             [clojure.java.classpath :as jcp]
             [clojure.string :as str]

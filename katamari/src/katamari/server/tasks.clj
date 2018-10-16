@@ -1,5 +1,6 @@
 (ns katamari.server.tasks
   "Helpers for defining Katamari task middlewares."
+  {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.string :as str]
             [ring.util.response :as resp]))
 

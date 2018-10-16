@@ -1,6 +1,7 @@
 (ns katamari.roll.reader
   "Tools for reading Rollfiles and providing partial parsing and
   refreshing of a project/repo's dependency graph."
+  {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [me.raynes.fs :as fs]
             [clojure.java.io :as jio]
             [clojure.data :refer [diff]]

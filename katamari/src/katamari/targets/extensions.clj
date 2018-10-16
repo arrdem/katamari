@@ -1,5 +1,6 @@
 (ns katamari.targets.extensions
   "The API by which to implement targets"
+  {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]))
 
 (defmulti parse-target

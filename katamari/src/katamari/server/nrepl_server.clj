@@ -1,4 +1,8 @@
 (ns katamari.server.nrepl-server
+  "A shim to start and manage an embedded CIDER instance.
+
+  Taken straight from the CIDER docs."
+  {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [nrepl.server :refer [start-server stop-server]]))
 
 (defonce +instance+

@@ -2,6 +2,7 @@
   "Core Katamari tasks.
 
   You could turn off or do without these, but it'd be weird."
+  {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.string :as str]
             [ring.util.response :as resp]))
 

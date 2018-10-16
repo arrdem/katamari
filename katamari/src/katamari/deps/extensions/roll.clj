@@ -1,4 +1,8 @@
 (ns katamari.deps.extensions.roll
+  "A :roll coordinate extension for tools.deps.
+
+  Used to implement Katamari's build targets as entities in deps' dependency graph."
+  {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require
    [clojure.java.io :as jio]
    [clojure.string :as str]

@@ -1,4 +1,6 @@
 (ns katamari.server.tasks.roll
+  "Katamari server handlers for working with the build graph."
+  {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.string :as str]
             [clojure.edn :as edn]
             [clojure.java.io :as jio]

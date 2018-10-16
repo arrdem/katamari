@@ -41,6 +41,7 @@
             \"list\" [\"a\" \"b\" \"c\" \"d\"]}}
   ```
   "
+  {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:refer-clojure :exclude [load load-string])
   (:require [clojure.java.io :as jio]
             [instaparse.core :as insta]))
