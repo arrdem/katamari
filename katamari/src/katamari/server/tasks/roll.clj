@@ -52,7 +52,10 @@
 
 (defn handle-classpath
   {:kat/request-name "classpath"
-   :kat/doc "Compute a classpath for selected target(s)"}
+   :kat/doc "Usage:
+  ./kat classpath [deps-options] -- [target ...]
+
+Compute a classpath and libs mapping for selected target(s)"}
   [handler]
   (fn [config stack request]
     (case (first request)
@@ -86,7 +89,6 @@
                deps
                ;; Bolt on our two magical internal profiles
                (update opts :aliases (partial concat [::defaults ::roll])))))
-          :classpath
           resp/response
           (resp/status 200))
 
@@ -124,7 +126,7 @@
       (if-let [target (second request)]
         (if-let [target-coord (get-in config [:buildgraph :targets (symbol target)])]
           (let [classpath (-> (stack config stack (list "classpath" "--" target))
-                              :body)
+                              :body :classpath)
                 target-dir (fs/file (:repo-root config)
                                     (:target-dir config))
                 jar-name (:jar-name target-coord (str (name (:name target-coord)) ".jar"))

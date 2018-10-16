@@ -64,7 +64,9 @@
 
 (defn handle-start-server
   {:kat/request-name "start-server"
-   :kat/doc "A task which will cause the server to be started. Performs no other action."}
+   :kat/doc "A task which will cause the server to be started.
+
+Reports the ports on which the HTTP and nREPL servers are running."}
   [handler]
   (fn [config stack request]
     (case (first request)
@@ -94,13 +96,36 @@
                           {:msg (str "Katamari - roll up your software into artifacts!\n"
                                      "\n"
                                      "Usage:\n"
-                                     "  ./kat [command] [flags] [targets]\n"
+                                     "  ./kat [-r|-j|-m] [command] [flags] [targets]\n"
+                                     "\n"
+                                     "Flags:\n"
+                                     "  -r, --raw  - print the raw JSON of Katamari server responses\n"
+                                     "  -j, --json - format the JSON of Katamari server responses\n"
+                                     "  -m, --message - print only the message part of server responses\n"
                                      "\n"
                                      "Commands:\n"
-                                     (str/join "\n"
+                                     (str/join "\n\n"
                                                (map (fn [{:keys [:kat/doc :kat/request-name]}]
-                                                      (str "  " request-name " - " doc))
+                                                      (str "  " request-name ":\n"
+                                                           (str/join "\n"
+                                                                     (map #(str "    " %)
+                                                                          (line-seq
+                                                                           (java.io.BufferedReader.
+                                                                            (java.io.StringReader.
+                                                                             doc)))))))
                                                     pairs)))}))
+
+          (and (= "help" (first request))
+               (second request))
+          (-> (stack config stack (cons "meta" (rest request)))
+              (update :body (fn [metadata]
+                              {:msg (-> (filter (fn [{:keys [:kat/request-name]}]
+                                                  (= request-name (second request)))
+                                                metadata)
+                                        first
+                                        (or {:kat/doc (str "No such command - "
+                                                           (pr-str (second request)))})
+                                        :kat/doc)})))
 
           (= "meta" (first request))
           (update (handler config stack request)
@@ -112,7 +137,9 @@
 (defn wrap-list
   "Implement list-commands by executing help and using only the task names."
   {:kat/request-name "list-commands",
-   :kat/doc "Enumerate the available commands briefly"}
+   :kat/doc "Enumerate the available commands.
+
+Do not report their help information."}
   
   [handler]
   (fn [config stack request]
