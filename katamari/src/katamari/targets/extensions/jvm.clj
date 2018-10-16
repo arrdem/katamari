@@ -5,13 +5,25 @@
             [katamari.targets.extensions :refer [deftarget]]
             [katamari.roll.specs :as rs]))
 
-(deftarget java-library
-  (s/keys* :opt-un [::rs/deps
-                    ::rs/paths]))
+;;;; Clojure library
+
+;; It doesn't really get simpler than this (unless there's AOT)
 
 (deftarget clojure-library
   (s/keys* :opt-un [::rs/deps
                     ::rs/paths]))
+
+;;;; Java library
+
+;; This needs to javac a bunch of stuff potentially
+
+(deftarget java-library
+  (s/keys* :opt-un [::rs/deps
+                    ::rs/paths]))
+
+;;;; Jarfile
+
+;; This is only kinda messy because there's a manifest involved.
 
 (s/def ::target
   ::rs/resolved-target-identifier)
