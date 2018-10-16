@@ -32,7 +32,9 @@
   [handler]
   (fn [config stack request]
     (let [graph (get (swap! +buildgraph-cache+
-                            assoc (:repo-root config) (compute-buildgraph config))
+                            update (:repo-root config)
+                            #(or (and % (refresh-buildgraph-for-changes config %))
+                                 (compute-buildgraph config)))
                      (:repo-root config))]
       (handler (assoc config :buildgraph graph) stack request))))
 
