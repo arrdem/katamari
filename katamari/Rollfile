@@ -21,13 +21,11 @@
     healthfinch/depstar nil
     pandect/pandect nil
     instaparse/instaparse nil
+    clj-fuzzy nil
 
     ;; Embedded development
     nrepl/nrepl nil
-    cider/cider-nrepl nil}
-
-   :profiles
-   {}))
+    cider/cider-nrepl nil}))
 
 (deftarget me.arrdem/katamari
   (jarfile

@@ -7,6 +7,7 @@
             [clojure.data :refer [diff]]
             [katamari.roll.specs :as rs]
             [clojure.spec.alpha :as s]
+            [clojure.tools.deps.alpha.reader :refer [canonicalize-all-syms]]
             [pandect.algo.sha256 :as hash])
   (:import [java.io File]))
 
@@ -33,7 +34,8 @@
                                          :repo repo-root})))
                  (-> (s/conform ::rs/def read-data)
                      (update :paths (partial map (comp #(.getCanonicalPath %)
-                                                       (partial fs/file (.getParent rollfile)))))))))
+                                                       (partial fs/file (.getParent rollfile)))))
+                     (update :deps canonicalize-all-syms)))))
        (map (juxt :name
                   #(assoc % :rollfile (.getCanonicalPath rollfile))))
        (into {})))

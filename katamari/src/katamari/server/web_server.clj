@@ -8,20 +8,21 @@
             [clojure.java.classpath :as jcp]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
+
             [compojure.core :refer [context defroutes GET PUT POST]]
             [cheshire.core :as json]
+
             [ring.util.response :as resp]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.middleware.json :refer [wrap-json-response]]
             [ring.middleware.stacktrace :refer [wrap-stacktrace]]
             [ring.middleware.session :as session]
+
             [katamari.conf :as conf]
             ;; The embedded nREPL server
             [katamari.server.nrepl-server :refer [start-nrepl-server!]]
             ;; Tasks
-            [katamari.server.tasks :as t]
-            [katamari.server.tasks.core :as t.c]
-            [katamari.server.tasks.roll :as t.roll]))
+            [katamari.server.extensions :refer [get-middleware-stack]]))
 
 ;;;; Config crap
 
@@ -42,33 +43,6 @@
        (resp/status code)
        (resp/update-header "content-type" (constantly "application/json")))))
 
-;;;; Tasks
-
-(def +request-middleware+
-  (atom
-   (-> t/root-task-handler
-
-       ;; Simple request handlers
-       t.c/handle-start-server
-       t.c/handle-show-request
-       t.c/handle-stop-server
-
-       ;; :thinking:
-       t.roll/handle-uberjar
-       t.roll/handle-classpath
-       t.roll/handle-list-targets
-       t.roll/wrap-buildgraph
-
-       ;; Handlers that hack the request
-       t.c/wrap-list
-       t.c/wrap-help
-
-       ;; Pure inits that happen first
-       t.c/guard-stop-server)))
-
-(defn inject-middleware [m]
-  (swap! +request-middleware+ m))
-
 ;;;; The server routes
 
 (defroutes +api-v0+
@@ -83,7 +57,7 @@
              :as   json-body} (json/parse-string (slurp body) key-fn)
             config          (-> (conf/load config-file key-fn)
                                 (merge (dissoc json-body :request)))
-            middleware @+request-middleware+]
+            middleware (get-middleware-stack)]
         ;; Note that this enables the middleware stack to recurse
         (middleware config middleware request)))))
 
@@ -112,8 +86,6 @@
             (.stop %)
             nil)))
 
-;; FIXME (arrdem 2018-09-29):
-;;   Should also embed an nREPL server and make that discoverable somehow.
 (defn -main
   [config-file]
   (log/info "Loading config file" config-file)
@@ -126,7 +98,3 @@
              (log/error e "Failed to load extension!"))))
     (start-web-server! cfg)
     (start-nrepl-server! cfg)))
-
-(comment
-  (start-web-server!
-   (conf/load "../kat.conf")))
