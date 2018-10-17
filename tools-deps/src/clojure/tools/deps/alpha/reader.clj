@@ -47,11 +47,11 @@
     (as-> (name s) n (symbol n n))
     s))
 
-(defn- canonicalize-all-syms
+(defn canonicalize-all-syms
   [deps-map]
   (walk/postwalk
-    #(cond-> % (map? %) (coll/map-keys canonicalize-sym))
-    deps-map))
+   #(cond-> % (map? %) (coll/map-keys canonicalize-sym))
+   deps-map))
 
 (defn slurp-deps
   "Read a single deps.edn file from disk and canonicalize symbols,
