@@ -97,7 +97,12 @@ Compute a classpath and libs mapping for selected target(s)"
       (resp/status 200)))
 
 (defhandler uberjar
-  "Produce an uberjar, according to the target's config"
+  "Usage:
+  ./kat uberjar [target]
+
+Given a single target, produce an uberjar according to the target's config.
+
+WARNING: As this is a special case of the compile task, it may be removed."
 
   [handler config stack request]
   (if-let [target (second request)]
