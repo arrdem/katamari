@@ -5,6 +5,7 @@
             [clojure.edn :as edn]
             [clojure.java.io :as jio]
             [clojure.java.shell :as jsh]
+            [clojure.set :refer [rename-keys]]
             [me.raynes.fs :as fs]
 
             ;; Deps
@@ -82,7 +83,8 @@ Compute a classpath and libs mapping for selected target(s)"
            deps
            ;; Bolt on our two magical internal profiles
            opts)))
-      (assoc :intent :json)
+      (rename-keys {:classpath :msg})
+      (assoc :intent :msg)
       resp/response
       (resp/status 200)))
 
@@ -100,8 +102,7 @@ Compute a classpath and libs mapping for selected target(s)"
   [handler config stack request]
   (if-let [target (second request)]
     (if-let [target-coord (get-in config [:buildgraph :targets (symbol target)])]
-      (let [classpath (-> (stack config stack (list "classpath" "--" target))
-                          :body :classpath)
+      (let [classpath (-> (stack config stack (list "classpath" "--" target)) :body :msg)
             target-dir (fs/file (:repo-root config)
                                 (:target-dir config))
             jar-name (:jar-name target-coord (str (name (:name target-coord)) ".jar"))
