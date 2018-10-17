@@ -1,4 +1,4 @@
-(ns katamari.targets.extensions
+(ns katamari.roll.extensions
   "The API by which to implement targets"
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]))

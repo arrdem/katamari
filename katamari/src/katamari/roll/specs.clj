@@ -3,7 +3,7 @@
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
             [clojure.tools.deps.alpha.specs :as tds]
-            [katamari.targets.extensions :as ext]))
+            [katamari.roll.extensions :as ext]))
 
 ;; A name for a target which has not yet been disambiguated
 (s/def ::unresolved-target-identifier

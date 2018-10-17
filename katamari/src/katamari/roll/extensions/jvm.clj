@@ -1,8 +1,8 @@
-(ns katamari.targets.extensions.jvm
+(ns katamari.roll.extensions.jvm
   "Definitions of some JVM related targets."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
-            [katamari.targets.extensions :refer [deftarget]]
+            [katamari.roll.extensions :refer [deftarget]]
             [katamari.roll.specs :as rs]))
 
 ;;;; Clojure library
