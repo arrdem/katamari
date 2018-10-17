@@ -270,11 +270,16 @@ function _send_request() {
     done
     args="[$args]"
 
+    headers_file=`mktemp`
+    out_file=`mktemp`
+
     # Send the request
     # FIXME (arrdem 2018-09-29): should be able to debug this request out to the user
-    output=$(
-        curl -s -H "Content-type: application/json;" \
+    curl -s \
+         -H "Content-type: application/json;" \
          -H "Accept: application/json;" \
+         -D "${headers_file}" \
+         -o "${out_file}" \
          --data "@-" \
          -XGET "http://${KAT_SERVER_ADDR}:${KAT_SERVER_HTTP_PORT}/api/v0/request" <<EOF
 {"repo_root":"${KAT_REPO_ROOT}",
@@ -283,22 +288,62 @@ function _send_request() {
  "cwd":"${PWD}",
  "request":$args}
 EOF
-          )
+
     status=$?
 
-    case "${KAT_OUTPUT_FORMAT:-message}" in
-        raw)
-            echo "${output}"
-            ;;
-        json)
-            echo "${output}" | jq -M .
-            ;;
-        message)
-            echo "${output}" | jq -r .msg
-            ;;
-    esac
+    while true; do
+        case "${KAT_INTENT:-response}" in
+            raw)
+                cat "${out_file}"
+                break
+                ;;
 
+            json)
+                jq -M . < "${out_file}"
+                break
+                ;;
+
+            msg|message)
+                jq -r .msg < "${out_file}"
+                break
+                ;;
+
+            sh|subshell)
+                echo "Attempting to subshell..." >&2
+                cat "${out_file}" >&2
+                echo
+                jq -r .sh < "${out_file}" | bash
+                break
+                ;;
+
+            exec)
+                echo "Attempting to exec..." >&2
+                cat "${out_file}" >&2
+                echo
+                exec $(jq -r .exec < "${out_file}")
+                break
+                ;;
+
+            response)
+                KAT_INTENT=$(jq -r .intent < "${out_file}")
+                continue
+                ;;
+
+            *)
+                cat <<EOF  >&2
+Error: Unknown intent '${KAT_INTENT}'
+While handling response:
+EOF
+                cat "${out_file}" >&2
+                rm "${out_file}" "${headers_file}"
+                return 1
+                ;;
+        esac
+    done
+
+    rm "${out_file}" "${headers_file}"
     return "${status}"
+
 }
 
 ## Core behavior
@@ -306,15 +351,15 @@ EOF
 while true; do
     case "${1}" in
         -r|--raw)
-            KAT_OUTPUT_FORMAT=raw
+            KAT_INTENT=raw
             shift
             ;;
         -j|--json)
-            KAT_OUTPUT_FORMAT=json
+            KAT_INTENT=json
             shift
             ;;
         -m|--message)
-            KAT_OUTPUT_FORMAT=message
+            KAT_INTENT=message
             shift
             ;;
         *)
