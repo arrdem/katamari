@@ -21,6 +21,8 @@ function _get_conf() {
 
 ## Configuration
 
+export KAT="${0}"
+
 # Find java executable
 if [ -z "${JAVA_CMD}" ]; then
     set +e
