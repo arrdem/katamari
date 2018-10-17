@@ -61,7 +61,7 @@
 (defhandler start-server
   "A task which will cause the server to be started.
 
-  Reports the ports on which the HTTP and nREPL servers are running."
+Reports the ports on which the HTTP and nREPL servers are running."
   [handler config stack request]
   (-> (merge {:intent :msg
               :msg (format (str "Started server!\n"
@@ -88,27 +88,28 @@
                   :body
                   (fn [{:keys [metadata]}]
                     {:intent :msg
-                     :msg (str "Katamari - roll up your software into artifacts!\n"
-                               "\n"
-                               "Usage:\n"
-                               "  ./kat [-r|-j|-m] [command] [flags] [targets]\n"
-                               "\n"
-                               "Flags:\n"
-                               "  -r, --raw  - print the raw JSON of Katamari server responses\n"
-                               "  -j, --json - format the JSON of Katamari server responses\n"
-                               "  -m, --message - print only the message part of server responses\n"
-                               "\n"
-                               "Commands:\n"
-                               (str/join "\n\n"
-                                         (map (fn [{:keys [:kat/doc :kat/task-name]}]
-                                                (str "  " task-name ":\n"
-                                                     (str/join "\n"
-                                                               (map #(str "    " %)
-                                                                    (line-seq
-                                                                     (java.io.BufferedReader.
-                                                                      (java.io.StringReader.
-                                                                       doc)))))))
-                                              metadata)))
+                     :msg (->> metadata
+                               (sort-by :kat/task-name)
+                               (map (fn [{:keys [:kat/doc :kat/task-name]}]
+                                      (str "  " task-name ":\n"
+                                           (str/join "\n"
+                                                     (map #(str "    " %)
+                                                          (line-seq
+                                                           (java.io.BufferedReader.
+                                                            (java.io.StringReader.
+                                                             doc))))))))
+                               (str/join "\n\n")
+                               (str "Katamari - roll up your software into artifacts!\n"
+                                    "\n"
+                                    "Usage:\n"
+                                    "  ./kat [-r|-j|-m] [command] [flags] [targets]\n"
+                                    "\n"
+                                    "Flags:\n"
+                                    "  -r, --raw  - print the raw JSON of Katamari server responses\n"
+                                    "  -j, --json - format the JSON of Katamari server responses\n"
+                                    "  -m, --message - print only the message part of server responses\n"
+                                    "\n"
+                                    "Commands:\n"))
                      :metadata metadata}))
 
           (and (= "help" (first request))
@@ -145,7 +146,7 @@ Do not report their help information."
   (update (stack config stack (cons "meta" (rest request)))
           :body
           (fn [{:keys [metadata]}]
-            (let [task-names (mapv :kat/task-name metadata)]
+            (let [task-names (sort (mapv :kat/task-name metadata))]
               {:intent :msg
                :msg (str "Commands:\n"
                          (str/join "\n" (map #(str "  " %) task-names)))
