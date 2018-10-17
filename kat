@@ -39,7 +39,7 @@ if [ -z "${JAVA_CMD}" ]; then
 fi
 
 # The kat install location
-if [ -z "${KAT_BIN_ROOT}"] ; then
+if [ -z "${KAT_BIN_ROOT}" ] ; then
     export KAT_BIN_ROOT=$(dirname $(realpath "${0}"))
 fi
 
