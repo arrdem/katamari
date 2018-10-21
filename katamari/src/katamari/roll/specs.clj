@@ -16,10 +16,10 @@
 (s/def ::def
   (s/and
    (s/cat :sym #{'deftarget}
-          :name ::resolved-target-identifier
+          :target ::resolved-target-identifier
           :docstring (s/? string?)
           :metadata (s/? map?)
-          :target ::target)
+          :rule ::rule)
    (s/conformer
     (fn [v]
       (if (= ::s/invalid v) v
@@ -33,5 +33,5 @@
 (s/def ::deps
   #(s/valid? ::tds/deps %))
 
-(s/def ::target
-  (s/multi-spec ext/parse-target first))
+(s/def ::rule
+  (s/multi-spec ext/parse-rule first))
