@@ -25,8 +25,8 @@
                        keys
                        (remove (set (keys buildgraph))))})
 
-(defmethod ext/rule-id 'clojure-library [config buildgraph target inputs]
-  )
+#_(defmethod ext/rule-id 'clojure-library [config buildgraph target inputs]
+    )
 
 (defmethod ext/rule-build 'clojure-library [config buildgraph target rule inputs]
   {:type ::product
