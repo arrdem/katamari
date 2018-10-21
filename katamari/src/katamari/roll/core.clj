@@ -77,9 +77,11 @@
                              %)
                           unplanned)]
           (if (not-empty phase)
+            ;; If we've made headway, keep going
             (recur (conj plan (vec phase))
                    (into planned phase)
                    (reduce disj unplanned phase))
+            ;; If we got stuck and can't make headway, blow up
             (throw (ex-info "got stuck on a circular dependency!"
                             {:plan plan
                              :planned planned
