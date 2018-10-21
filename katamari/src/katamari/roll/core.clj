@@ -76,9 +76,14 @@
                                          (->deps %))
                              %)
                           unplanned)]
-          (recur (conj plan (vec phase))
-                 (into planned phase)
-                 (reduce disj unplanned phase)))
+          (if (not-empty phase)
+            (recur (conj plan (vec phase))
+                   (into planned phase)
+                   (reduce disj unplanned phase))
+            (throw (ex-info "got stuck on a circular dependency!"
+                            {:plan plan
+                             :planned planned
+                             :unplanned unplanned}))))
         plan))))
 
 (defn plan
