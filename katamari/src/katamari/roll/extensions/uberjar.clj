@@ -1,11 +1,11 @@
-(ns katamari.roll.extensions.jar
-  "A definition of `jar` based on `depstar`."
+(ns katamari.roll.extensions.uberjar
+  "A definition of `jar` and `uberjar` based on `depstar`."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
             [katamari.roll.extensions :as ext]
             [katamari.roll.specs :as rs]))
 
-;;;; Jarfile
+;;;; (uber)jarfile
 
 ;; This is only kinda messy because there's a manifest involved.
 
@@ -21,7 +21,7 @@
 (s/def ::jar-name
   string?)
 
-(ext/defmanifest jar
+(ext/defmanifest uberjar
   (s/keys* :req-un [::rs/deps]
            :opt-un [::jar-name
                     ::entry-point

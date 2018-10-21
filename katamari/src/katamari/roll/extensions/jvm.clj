@@ -9,7 +9,7 @@
             [katamari.roll.specs :as rs]
             [katamari.roll.extensions :as ext]
             [katamari.deps.extensions.roll :as der]
-            
+
             ;; deps
             [clojure.tools.deps.alpha :as deps]
             [clojure.tools.deps.alpha.reader :as reader]
@@ -103,30 +103,31 @@
                                                  target-version]
                                           :as rule}
                                          inputs]
-  (let [dest-dir (.getCanonicalPath
-                  (.toFile
-                   (Files/createTempDirectory "javac"
-                                              (into-array FileAttribute []))))
-        deps (into deps
-                   (map (fn [{:keys [from] :as product}]
-                          [from product]))
-                   (:targets inputs))
-        _ (prn deps)
-        cp (make-classpath config {:deps deps})
-        _ (prn cp)
-        cmd (cond-> ["javac" "-cp" (:classpath cp)]
-              source-version (into ["-source" source-version])
-              target-version (into ["-target" target-version])
-              true (-> (into ["-d" dest-dir])
-                       (into (->> (map (partial fs/file (:repo-root config)) paths)
-                                  (mapcat file-seq)
-                                  (filter #(.isFile %))
-                                  (map #(.getCanonicalPath %))))))]
+  (let [source-files (->> (map (partial fs/file (:repo-root config)) paths)
+                          (mapcat file-seq)
+                          (filter #(.isFile %))
+                          (map #(.getCanonicalPath %)))
+        dest-dir (->> (into-array FileAttribute [])
+                      (Files/createTempDirectory "javac")
+                      (.toFile)
+                      (.getCanonicalPath))]
 
-    (prn cmd)
+    ;; FIXME (arrdem 2018-10-21):
+    ;;   Capture the exit results nicely
+    (when source-files
+      (let [deps (into deps
+                       (map (fn [{:keys [from] :as product}]
+                              [from product]))
+                       (:targets inputs))
+            cp (make-classpath config {:deps deps})
+            cmd (cond-> ["javac"]
+                  (:classpath cp) (into ["-cp" (:classpath cp)])
+                  source-version (into ["-source" source-version])
+                  target-version (into ["-target" target-version])
+                  true (-> (into ["-d" dest-dir])
+                           (into source-files)))]
+        (apply sh/sh cmd)))
 
-    (prn (apply sh/sh cmd))
-    
     {:type ::product
      :from target
      :mvn/manifest :roll
