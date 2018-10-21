@@ -1,7 +1,9 @@
 (ns katamari.roll.core
   "The API by which to execute rolling."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
-  (:require [katamari.diff :as diff]
+  (:require [clojure.spec.alpha :as s]
+            [katamari.diff :as diff]
+            [katamari.roll.specs :as rs]
             [katamari.roll.extensions :refer :all]))
 
 (defn- prep-manifests
@@ -10,12 +12,12 @@
   Diffing is used to continue initializing manifests if more manifests
   are added to the build graph while prepping other manifests. This
   should be a pathological case, but it's supported."
-  [config buildgraph]
+  [config targets]
   (loop [config config
-         buildgraph (diff/->DiffingMap buildgraph nil)
+         targets (diff/->DiffingMap targets nil)
          [manifest & wl* :as wl] (into #{}
                                        (map rule-manifest)
-                                       (vals buildgraph))
+                                       (vals targets))
          seen #{}]
     (if (not-empty wl)
       (let [seen*
@@ -23,7 +25,7 @@
 
             [config* buildgraph*]
             (try
-              (let [[c b] (manifest-prep config buildgraph manifest)]
+              (let [[c b] (manifest-prep config targets manifest)]
                 (when-not (instance? katamari.diff.DiffingMap b)
                   (throw (IllegalStateException.
                           "Manifest initialization discarded diff info!")))
@@ -43,7 +45,7 @@
                     (into wl*)
                     (remove seen*))
                seen*))
-      [config buildgraph])))
+      [config targets])))
 
 (defn- prep-rules
   "Execute any required rule prep.
@@ -52,14 +54,14 @@
   each rule has the opportunity to inject more `[target, rule]` pairs
   which means that prep has to continue until a fixed point is
   reached."
-  [config buildgraph]
+  [config targets]
   (loop [config config
-         buildgraph (diff/->DiffingMap buildgraph nil)
-         [[target rule] & wl* :as wl] buildgraph]
+         targets (diff/->DiffingMap targets nil)
+         [[target rule] & wl* :as wl] targets]
     (if (not-empty wl)
       (let [[config* buildgraph*]
             (try
-              (let [[c b] (rule-prep config buildgraph target rule)]
+              (let [[c b] (rule-prep config targets target rule)]
                 (when-not (instance? katamari.diff.DiffingMap b)
                   (throw (IllegalStateException.
                           "Rule initialization discarded diff info!")))
@@ -77,22 +79,22 @@
                                        (not= oldval newval))
                               [key newval])))
                     (into wl*))))
-      [config buildgraph])))
+      [config targets])))
 
 (defn- prep
   "Execute any required prep plugins / tasks."
-  [config buildgraph]
+  [config targets]
   (try
-    (let [[config buildgraph] (prep-manifests config buildgraph)
+    (let [[config targets] (prep-manifests config targets)
           ;; FIXME (arrdem 2018-10-20):
           ;;   Does this need to be in topsort order first, or do the rules get to init?
-          [config buildgraph] (prep-rules config buildgraph)]
-      [config buildgraph])
+          [config targets] (prep-rules config targets)]
+      [config targets])
     
     (catch Exception e
       (throw (ex-info "Exception in roll.prep"
                       {:config config
-                       :buildgraph buildgraph}
+                       :buildgraph targets}
                       e)))))
 
 (defn- fix [f x]
@@ -104,11 +106,11 @@
 
   The plan is a sequence of phases - groups of targets which could be compiled
   simultaneously."
-  [config buildgraph & [goal-target?]]
+  [config targets & [goal-target?]]
   (let [->deps (memoize
                 (fn [target]
-                  (->> (get buildgraph target)
-                       (rule-inputs config buildgraph target)
+                  (->> (get targets target)
+                       (rule-inputs config targets target)
                        (mapcat val)
                        (set))))]
     (loop [plan []
@@ -120,7 +122,7 @@
                                              (cons target (->deps target))))
                                    (into (sorted-set))))
                             (sorted-set goal-target?))
-                       (set (keys buildgraph)))]
+                       (set (keys targets)))]
       (if (seq unplanned)
         (let [phase (keep #(when (every? (partial contains? planned)
                                          (->deps %))
@@ -138,34 +140,48 @@
                              :unplanned unplanned}))))
         plan))))
 
+(s/fdef plan
+  :args (s/cat :conf any?
+               :graph ::rs/buildgraph
+               :target (s/? ::rs/target))
+  :ret (s/tuple any? ::rs/buildgraph (s/coll-of (s/coll-of ::rs/target))))
+
 (defn plan
   "Plan for a roll!
 
   Prep all the manifests, rules, and builds an ordering of the targets.
 
   Returns the (potentially updated!) config and build graph, along with the plan."
-  [config buildgraph & [goal-target?]]
-  (let [[config buildgraph] (prep config buildgraph)]
-    [config buildgraph
-     (try (order-buildgraph config buildgraph goal-target?)
+  [config {:keys [targets] :as buildgraph} & [goal-target?]]
+  (let [[config targets] (prep config targets)]
+    [config targets
+     (try (order-buildgraph config targets goal-target?)
           (catch Exception e
             (throw (ex-info "roll.plan" {} e))))]))
+
+(s/fdef roll
+  :args (s/cat :conf any?
+               :graph ::rs/buildgraph
+               :target (s/? ::rs/target))
+  :ret (s/map-of ::rs/target any?))
 
 (defn roll
   "Do a roll!
 
   Recursively builds all rules and their dependencies, or if `goal-target` is
-  supplied only that target and its dependencies."
-  [config buildgraph & [goal-target?]]
-  (let [[config buildgraph plan] (plan config buildgraph goal-target?)]
+  supplied only that target and its dependencies.
+
+  Return a mapping from built targets to their products."
+  [config {:keys [targets] :as buildgraph} & [goal-target?]]
+  (let [[config targets plan] (plan config targets goal-target?)]
     (reduce (fn [products target]
-              (let [rule (get buildgraph target)
+              (let [rule (get targets target)
                     inputs (into {}
                                  (map (fn [[key targets]]
                                         [key (mapv #(get products %) targets)]))
-                                 (rule-inputs config buildgraph target rule))]
+                                 (rule-inputs config targets target rule))]
                 (assoc products
-                       target (rule-build config buildgraph target rule inputs))))
+                       target (rule-build config targets target rule inputs))))
             ;; FIXME (arrdem 2018-10-20):
             ;;   Lol no product caching
             {}

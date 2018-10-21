@@ -3,7 +3,8 @@
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
             [clojure.tools.logging :as log]
-            [clojure.tools.deps.alpha.extensions :refer [coord-type]]))
+            [clojure.tools.deps.alpha.extensions :refer [coord-type]]
+            [katamari.roll.specs :as rs]))
 
 ;;; Manifests
 
@@ -19,16 +20,38 @@
   [manifest-name keys-form]
   `(defmethod parse-manifest '~manifest-name [~'_]
      (s/and
-      (s/cat :roll/manifest (set ['~manifest-name])
+      (s/cat :manifest (set ['~manifest-name])
              :kvs ~keys-form)
       (s/conformer
        (fn [v#]
          (if-not (= ::s/invalid v#)
-           (merge (:kvs v#) (select-keys v# [:roll/manifest]))
+           (merge (:kvs v#) (select-keys v# [:manifest]))
            ::s/invalid))))))
 
-(defn rule-manifest [{:keys [roll/manifest]}]
+(s/fdef rule-manifest
+  :args (s/cat :_ ::rs/rule)
+  :ret ::rs/manifest)
+
+(defn rule-manifest
+  "Return a rule's manifest.
+
+  Used to implement dispatch on rules by their manifests."
+  [{:keys [manifest]}]
   manifest)
+
+(defn- dispatch
+  "Helper for the common pattern of dispatching on the rule manifest."
+  ([config buildgraph target rule]
+   (rule-manifest rule))
+  ([config buildgraph target rule inputs]
+   (rule-manifest rule)))
+
+;;; Prep steps
+
+(s/fdef manifest-prep
+  :args (s/cat :conf any?
+               :graph ::rs/buildgraph
+               :manifest ::rs/manifest))
 
 (defmulti
   ^{:arglists '([config buildgraph manifest])
@@ -49,12 +72,32 @@ in the filesystem or on the path."}
   #_(printf "No configured prep.manifest for %s\n" manifest)
   [config buildgraph])
 
-(defn- dispatch
-  "Helper for the common pattern of dispatching on the rule manifest."
-  ([config buildgraph target rule]
-   (rule-manifest rule))
-  ([config buildgraph target rule inputs]
-   (rule-manifest rule)))
+(s/fdef rule-prep
+  :args (s/cat :conf any?
+               :graph ::rs/buildgraph
+               :target ::rs/target))
+
+(defmulti
+  ^{:arglists '([config buildgraph target rule])
+    :doc "Perform any required preparation for building a target.
+
+Invoked once per rule in the buildgraph, in topological order.
+
+Implementations must return a pair `[config, buildgraph]`, which may be updated.
+
+By default, tasks require no preparation."}
+
+  rule-prep
+  #'dispatch)
+
+(defmethod rule-prep :default [config buildgraph target rule]
+  #_(printf "No configured prep.rule for manifest %s (target %s)\n"
+            (rule-manifest rule) target)
+  [config buildgraph])
+
+;;; The dependency tree
+
+(s/fdef rule-inputs)
 
 (defmulti
   ^{:arglists '([config buildgraph target rule])
@@ -77,25 +120,24 @@ without having to take separate steps to recover information about those deps."}
                    :manifest (rule-manifest rule)})))
 
 (defmulti
-  ^{:arglists '([config buildgraph target rule])
-    :doc "Perform any required preparation for building a target.
+  ^{:arglusts '([config buildgraph target rule inputs])
+    :doc "Compute and return a content hash string for this build target.
 
-Invoked once per rule in the buildgraph, in topological order.
+The returned string is required to match `#\"[a-z0-9]{32,}\"`, must be
+deterministic, cheap to compute and factor in the `rule-id` of its inputs as
+well as the content of any files on the path.
 
-Implementations must return a pair `[config, buildgraph]`, which may be updated.
+Invoked once per rule in the build graph, in topological order."}
 
-By default, tasks require no preparation."}
-
-  rule-prep
+  rule-id
   #'dispatch)
 
-(defmethod rule-prep :default [config buildgraph target rule]
-  #_(printf "No configured prep.rule for manifest %s (target %s)\n"
-            (rule-manifest rule) target)
-  [config buildgraph])
+(defmethod rule-id :default [config buildgraph target rule inputs]
+  )
 
 (defmulti
   ^{:arglists '([config buildgraph target rule inputs])
     :doc "Apply the rule to its inputs, producing a build product."}
+
   rule-build
   #'dispatch)

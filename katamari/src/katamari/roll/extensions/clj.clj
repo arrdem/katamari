@@ -2,21 +2,32 @@
   "A definition of `clojure-library`."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
-            [katamari.roll.extensions :refer [defmanifest]]
-            [katamari.roll.specs :as rs]))
+            [katamari.roll.specs :as rs]
+            [katamari.roll.extensions :as ext]
+            [katamari.roll.extensions.jvm :a rejvm]))
 
 ;;;; Clojure library
 
-;; It doesn't really get simpler than this (unless there's AOT)
+;; It doesn't really get simpler than this.
+;;
+;; Unless there's AOT, which this target doesn't support yet.
 
-(defmanifest clojure-library
+(ext/defmanifest clojure-library
   (s/keys* :opt-un [::rs/deps
                     ::rs/paths]))
 
-;;;; Java library
+(defmethod ext/rule-prep 'clojure-library [config buildgraph target rule]
+  [config buildgraph])
 
-;; This needs to javac a bunch of stuff potentially
+(defmethod ext/rule-inputs 'clojure-library [config buildgraph target rule]
+  ;; We only need buildgraph internal targets to be built for us.
+  {:internal-libs (->> (:deps rule)
+                       keys
+                       (remove (set (keys buildgraph))))})
 
-(defmanifest java-library
-  (s/keys* :opt-un [::rs/deps
-                    ::rs/paths]))
+(defmethod ext/rule-id 'clojure-library [config buildgraph target inputs]
+  )
+
+(defmethod ext/rule-build 'clojure-library [config buildgraph target rule inputs]
+  {:type ::product
+   :from target})

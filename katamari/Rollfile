@@ -22,11 +22,12 @@
     pandect/pandect nil
     instaparse/instaparse nil
     clj-fuzzy nil
+    io.replikativ/hasch nil
 
     ;; Embedded development
     nrepl/nrepl nil
     cider/cider-nrepl nil}))
 
 (deftarget me.arrdem/katamari
-  (jarfile
+  (uberjar
    :deps {me.arrdem/lib-katamari nil}))

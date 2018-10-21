@@ -32,35 +32,29 @@
 ;; Ideally this would be baked into Clojure's collection libs as metadata, but
 ;; that tracing has nonzero cost and :shrug:
 ;;
-;; Also determining when you're "done" diffing isn't great. You wind up having a
-;; notion somewhere that your state is "finished" and that diffs should be
-;; collected.
+;; This implementation strikes a compromise by recursively subsuming all the
+;; diffs of updated child structures into the parent structure. This lets
+;; inserting, deleting and clearing diff data remain constant cost.
+
+;; FIXME (arrdem 2018-10-21):
+;;   When getting values out, they should be shimmed to do diff tracking.
+
 (deftype DiffingMap [contents diff]
   IDiffTracking
   (getDiff [this]
     diff)
 
-  ;; Recursively truncate logs
-  #_(emptyDiff [this]
-      (DiffingMap.
-       (into {}
-             (map (fn [[k v]]
-                    [(without-diff k) (without-diff v)]))
-             contents)
-       nil))
-
-  ;; Lazy version - full tree diffing is a right pain anyway.
   (emptyDiff [this]
     (DiffingMap. contents nil))
 
   clojure.lang.IPersistentMap
   (assoc [this k v]
     (DiffingMap.
-     (.assoc contents k v)
+     (.assoc contents k (without-diff v))
      (vconj diff
             (if (contains? contents k)
-              [:change k (get contents k) v]
-              [:insert k nil v]))))
+              [:change k (get contents k) v (diff v)]
+              [:insert k nil v nil]))))
 
   (assocEx [_ k v]
     ;; DEAD CODE
@@ -70,7 +64,7 @@
     (DiffingMap.
      (.without contents k)
      (if (contains? contents k)
-       (vconj diff [:remove k])
+       (vconj diff [:remove k (get contents k) nil nil])
        diff)))
 
   java.lang.Iterable
@@ -107,3 +101,7 @@
 
   (valAt [_ k not-found]
     (.valAt contents k not-found)))
+
+;; FIXME (arrdem 2018-10-21):
+;;   Implement an equivalent diff tracking vector.
+;;   That covers most of my non-atomic use cases.

@@ -22,7 +22,7 @@
   cheshire/cheshire {:mvn/version "5.8.0"}
 
   instaparse/instaparse {:mvn/version"1.4.9"}
-  io.replikativ/hasch {:mvn/version "0.3.4"}
+  io.replikativ/hasch {:mvn/version "0.3.5"}
   pandect/pandect {:mvn/version "0.6.1"}
   clj-fuzzy {:mvn/version "0.4.1"}
 
