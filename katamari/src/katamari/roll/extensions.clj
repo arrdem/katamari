@@ -2,6 +2,7 @@
   "The API by which to implement targets and participate in rolling."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
+            [clojure.tools.logging :as log]
             [clojure.tools.deps.alpha.extensions :refer [coord-type]]))
 
 ;;; Manifests
@@ -16,14 +17,14 @@
 (defmacro defmanifest
   "Helper for defining rule manifests and their handling."
   [manifest-name keys-form]
-  `(defmethod parse-target '~manifest-name [~'_]
+  `(defmethod parse-manifest '~manifest-name [~'_]
      (s/and
       (s/cat :roll/manifest (set ['~manifest-name])
              :kvs ~keys-form)
       (s/conformer
        (fn [v#]
          (if-not (= ::s/invalid v#)
-           (merge (:kvs v#) (selet-keys v# [:roll/manifest]))
+           (merge (:kvs v#) (select-keys v# [:roll/manifest]))
            ::s/invalid))))))
 
 (defn rule-manifest [{:keys [roll/manifest]}]
@@ -45,6 +46,7 @@ in the filesystem or on the path."}
     manifest))
 
 (defmethod manifest-prep :default [config buildgraph manifest]
+  #_(printf "No configured prep.manifest for %s\n" manifest)
   [config buildgraph])
 
 (defn- dispatch
@@ -56,19 +58,20 @@ in the filesystem or on the path."}
 
 (defmulti
   ^{:arglists '([config buildgraph target rule])
-    :doc "Return a map of keywords to depended targets.
+    :doc "Return a map of keywords to sequences of depended targets.
 
 This is used both to enumerate the dependencies of a rule for topological build
 planning, and to define the keying of the inputs structure which the rule will
 receive when built.
 
-For instance a"}
+This allows tasks to take as inputs many different groups of dependencies,
+without having to take separate steps to recover information about those deps."}
 
   rule-inputs
   #'dispatch)
 
-(defmethod rule-deps :default [config buildgraph target rule]
-  (throw (ex-info "No `target-deps` implementation for manifest!"
+(defmethod rule-inputs :default [config buildgraph target rule]
+  (throw (ex-info "No `rule-inputs` implementation for manifest!"
                   {:target target
                    :rule rule
                    :manifest (rule-manifest rule)})))
@@ -87,6 +90,8 @@ By default, tasks require no preparation."}
   #'dispatch)
 
 (defmethod rule-prep :default [config buildgraph target rule]
+  #_(printf "No configured prep.rule for manifest %s (target %s)\n"
+            (rule-manifest rule) target)
   [config buildgraph])
 
 (defmulti

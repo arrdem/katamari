@@ -1,52 +1,99 @@
 (ns katamari.roll.core
   "The API by which to execute rolling."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
-  (:require [katamari.roll.extensions :refer :all]))
+  (:require [katamari.diff :as diff]
+            [katamari.roll.extensions :refer :all]))
 
 (defn- prep-manifests
-  "Execute any required manifest prep."
+  "Execute any required manifest prep.
+
+  Diffing is used to continue initializing manifests if more manifests
+  are added to the build graph while prepping other manifests. This
+  should be a pathological case, but it's supported."
   [config buildgraph]
-  (reduce
-   (fn [[config buildgraph] manifest]
-     (try
-       (manifest-prep config buildgraph manifest)
-       (catch Exception e
-         (throw (ex-info "Exception in roll.prep.manifest"
-                         {:manifest manifest}
-                         e)))))
-   [config buildgraph]
-   (into #{}
-         (map rule-manifest)
-         (vals buildgraph))))
+  (loop [config config
+         buildgraph (diff/->DiffingMap buildgraph nil)
+         [manifest & wl* :as wl] (into #{}
+                                       (map rule-manifest)
+                                       (vals buildgraph))
+         seen #{}]
+    (if (not-empty wl)
+      (let [seen*
+            (conj seen manifest)
+
+            [config* buildgraph*]
+            (try
+              (let [[c b] (manifest-prep config buildgraph manifest)]
+                (when-not (instance? katamari.diff.DiffingMap b)
+                  (throw (IllegalStateException.
+                          "Manifest initialization discarded diff info!")))
+                [c b])
+              (catch Exception e
+                (throw (ex-info "Exception in roll.prep.manifest"
+                                {:manifest manifest}
+                                e))))]
+        (recur config*
+               (diff/without-diff buildgraph*)
+               (->> (diff/diff buildgraph*)
+                    (keep (fn [[op _ oldval newval]]
+                            (when (and (#{:change :insert} op)
+                                       (not= oldval newval))
+                              newval)))
+                    (map rule-manifest)
+                    (into wl*)
+                    (remove seen*))
+               seen*))
+      [config buildgraph])))
 
 (defn- prep-rules
-  "Execute any required rule prep."
+  "Execute any required rule prep.
+
+  As with `#'prep-manifests` this isn't completely trivial because
+  each rule has the opportunity to inject more `[target, rule]` pairs
+  which means that prep has to continue until a fixed point is
+  reached."
   [config buildgraph]
-  (reduce
-   (fn [[config buildgraph] rule]
-     (try
-       (rule-prep config buildgraph rule)
-       (catch Exception e
-         (throw (ex-info "Exception in roll.prep.rule"
-                         {:rule rule
-                          :manifest (rule-manifest rule)})))))
-   [config buildgraph]
-   (vals buildgraph)))
+  (loop [config config
+         buildgraph (diff/->DiffingMap buildgraph nil)
+         [[target rule] & wl* :as wl] buildgraph]
+    (if (not-empty wl)
+      (let [[config* buildgraph*]
+            (try
+              (let [[c b] (rule-prep config buildgraph target rule)]
+                (when-not (instance? katamari.diff.DiffingMap b)
+                  (throw (IllegalStateException.
+                          "Rule initialization discarded diff info!")))
+                [c b])
+              (catch Exception e
+                (throw (ex-info "Exception in roll.prep.rule"
+                                {:rule rule
+                                 :manifest (rule-manifest rule)}
+                                e))))]
+        (recur config*
+               (diff/without-diff buildgraph*)
+               (->> (diff/diff buildgraph*)
+                    (keep (fn [[op key oldval newval]]
+                            (when (and (#{:change :insert} op)
+                                       (not= oldval newval))
+                              [key newval])))
+                    (into wl*))))
+      [config buildgraph])))
 
 (defn- prep
   "Execute any required prep plugins / tasks."
   [config buildgraph]
   (try
-    (let [[config buildgraph] (roll-prep-manifests config buildgraph)
+    (let [[config buildgraph] (prep-manifests config buildgraph)
           ;; FIXME (arrdem 2018-10-20):
           ;;   Does this need to be in topsort order first, or do the rules get to init?
-          [config buildgraph] (roll-prep-rules config buildgraph)]
+          [config buildgraph] (prep-rules config buildgraph)]
       [config buildgraph])
-
+    
     (catch Exception e
       (throw (ex-info "Exception in roll.prep"
                       {:config config
-                       :buildgraph buildgraph})))))
+                       :buildgraph buildgraph}
+                      e)))))
 
 (defn- fix [f x]
   (let [x* (f x)]
@@ -60,15 +107,18 @@
   [config buildgraph & [goal-target?]]
   (let [->deps (memoize
                 (fn [target]
-                  (set (vals (rule-inputs config buildgraph target (get buildgraph target))))))]
+                  (->> (get buildgraph target)
+                       (rule-inputs config buildgraph target)
+                       (mapcat val)
+                       (set))))]
     (loop [plan []
            planned #{}
            unplanned (if goal-target?
                        (fix (fn [target-ids]
-                              (into (sorted-set)
-                                    (mapcat (fn [target]
-                                              (cons target (->deps target)))
-                                            target-ids)))
+                              (->> target-ids
+                                   (mapcat (fn [target]
+                                             (cons target (->deps target))))
+                                   (into (sorted-set))))
                             (sorted-set goal-target?))
                        (set (keys buildgraph)))]
       (if (seq unplanned)
@@ -96,7 +146,10 @@
   Returns the (potentially updated!) config and build graph, along with the plan."
   [config buildgraph & [goal-target?]]
   (let [[config buildgraph] (prep config buildgraph)]
-    [config buildgraph (order-buildgraph config buildgraph goal-target?)]))
+    [config buildgraph
+     (try (order-buildgraph config buildgraph goal-target?)
+          (catch Exception e
+            (throw (ex-info "roll.plan" {} e))))]))
 
 (defn roll
   "Do a roll!
@@ -108,8 +161,8 @@
     (reduce (fn [products target]
               (let [rule (get buildgraph target)
                     inputs (into {}
-                                 (map (fn [[key target]]
-                                        [key (get products target)]))
+                                 (map (fn [[key targets]]
+                                        [key (mapv #(get products %) targets)]))
                                  (rule-inputs config buildgraph target rule))]
                 (assoc products
                        target (rule-build config buildgraph target rule inputs))))

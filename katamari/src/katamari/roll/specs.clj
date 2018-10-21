@@ -23,7 +23,7 @@
    (s/conformer
     (fn [v]
       (if (= ::s/invalid v) v
-          (merge (dissoc v :target :sym) (:target v)))))))
+          (merge (dissoc v :rule :sym) (:rule v)))))))
 
 ;; Targets may have paths - a list of paths to be processed
 (s/def ::paths
@@ -34,4 +34,4 @@
   #(s/valid? ::tds/deps %))
 
 (s/def ::rule
-  (s/multi-spec ext/parse-rule first))
+  (s/multi-spec ext/parse-manifest first))
