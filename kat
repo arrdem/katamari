@@ -102,16 +102,18 @@ server_work_dir=.kat.d
 
 # (class)paths to (load) after application boot but before the server(s) start
 server_extensions=[
-  /clojure/tools/deps/alpha/extensions/maven
-  /clojure/tools/deps/alpha/extensions/local
-  /clojure/tools/deps/alpha/extensions/git
-  /clojure/tools/deps/alpha/extensions/deps
-  /clojure/tools/deps/alpha/extensions/pom
-  /katamari/roll/extensions/jvm
-  /katamari/server/extensions/cheshire
-  /katamari/server/extensions/core_handlers
-  /katamari/server/extensions/roll_handlers
-  /katamari/server/extensions/fuzzy_not_found
+  clojure.tools.deps.alpha.extensions.maven
+  clojure.tools.deps.alpha.extensions.local
+  clojure.tools.deps.alpha.extensions.git
+  clojure.tools.deps.alpha.extensions.deps
+  clojure.tools.deps.alpha.extensions.pom
+  katamari.server.extensions.cheshire
+  katamari.server.extensions.core-handlers
+  katamari.server.extensions.fuzzy-not-found
+  katamari.server.extensions.roll-handlers
+  katamari.roll.extensions.jvm
+  katamari.roll.extensions.clj
+  katamari.roll.extensions.jar
 ]
 
 ### tools.deps
@@ -210,7 +212,7 @@ function _ping_server() {
 # Start the server and wait for it to come back
 function _start_server() {
     # Ensure the work dir
-    mkdir -p "${KAT_SERVER_WORK_DIR}"
+    mkdir -p "${KAT_REPO_ROOT}/${KAT_SERVER_WORK_DIR}"
 
     # FIXME (arrdem 2018-09-29):
     #   Should be possible to time how long it takes the server to become available.
@@ -226,7 +228,7 @@ EOF
 
     CWD=${KAT_SERVER_WORK_DIR} "${JAVA_CMD}" -cp "${KAT_SERVER_CP}" \
        clojure.main -m "${KAT_SERVER_NS}" "${KAT_CONFIG}" \
-       2>&1 >> "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}" &
+       2>&1 >> "${KAT_SERVER_LOG_FILE}" &
     KAT_SERVER_PID="$!"
 
     disown "${KAT_SERVER_PID}"
