@@ -55,8 +55,8 @@
     (GET "/request" {:keys [body]}
       (let [{:keys [request config-file repo-root]
              :as   json-body} (json/parse-string (slurp body) key-fn)
-            config          (-> (conf/load config-file key-fn)
-                                (merge (dissoc json-body :request)))
+            config            (-> (conf/load config-file key-fn)
+                                  (merge (dissoc json-body :request)))
             middleware (get-middleware-stack)]
         ;; Note that this enables the middleware stack to recurse
         (middleware config middleware request)))))
@@ -92,7 +92,7 @@
   (let [cfg (conf/load config-file key-fn)]
     (log/info "Loaded config" cfg)
     (doseq [path (:server-extensions cfg)]
-      (try (load path)
+      (try (require (symbol path))
            (log/infof "Loaded extension %s" path)
            (catch Exception e
              (log/error e "Failed to load extension!"))))

@@ -139,6 +139,7 @@ reflective tools like `list-tasks` and `help` which rely on `meta`."}
   Intended to be light weight - consequently while handling is
   provided for the special `meta` request, that's really all this
   macro buys you besides integration with the handler registry."
+  {:arglists '([symbol docstring? meta? [handler config stack request :as bindings] & body])}
   [& args]
   (let [{:keys [task-name docstring metadata arglist body]}
         (s/conform (:args (s/get-spec `defhandler)) args)
@@ -182,6 +183,7 @@ reflective tools like `list-tasks` and `help` which rely on `meta`."}
   with the registry and some arglist repetition.
 
   Note that wrappers don't participate in the `meta` protocol."
+  {:arglists '([symbol docstring? meta? [handler config stack request :as bindings] & body])}
   [& args]
   (let [{:keys [wrapper-name docstring metadata arglist body]}
         (s/conform (:args (s/get-spec `defwrapper)) args)

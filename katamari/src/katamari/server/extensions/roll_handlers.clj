@@ -16,6 +16,7 @@
             [clojure.tools.deps.alpha.script.parse :as deps-parser]
 
             ;; Katamari
+            [katamari.roll.core :as roll]
             [katamari.roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
             [katamari.deps.extensions.roll :as der]
             [katamari.server.extensions :refer [defhandler defwrapper]]
@@ -41,91 +42,37 @@
                    (:repo-root config))]
     (handler (assoc config :buildgraph graph) stack request)))
 
-(defn buildgraph->default-deps [buildgraph]
-  (->> buildgraph
-       :targets
-       (map (fn [[name coord]]
-              [name (assoc (select-keys coord [:paths :deps])
-                           :deps/manifest :roll
-                           :roll/name (:name coord)
-                           :roll/file (:rollfile coord))]))
-       (into {})))
+(defhandler compile
+  "Compile specified target(s), producing any outputs.
 
-(defhandler classpath
-  "Usage:
-  ./kat classpath [deps-options] -- [target ...]
+Usage:
+  ./compile target
 
-Compute a classpath and libs mapping for selected target(s)"
+Causes the specified targets to be compiled.
+
+At present, makes no attempt to compile only invalidated targets.
+
+Produces a map from target identifiers to build products."
   [handler config stack request]
-  (-> (let [opts (-> (rest request)
-                     (mkcp/parse-opts)
-                     (update :config-files (partial cons
-                                                    (fs/file (:repo-root config)
-                                                             (:deps-defaults-file config))))
-                     (update :config-data #(or % (deps-parser/parse-config
-                                                  (:deps-defaults-data config)))))
-            deps (-> (mkcp/combine-deps-files opts)
-                     ;; Splice in CLI targets
-                     (assoc :deps (zipmap (map symbol (:arguments opts)) (repeat nil)))
-                     ;; Inject the defaults "profile"
-                     (assoc-in [:aliases ::defaults]
-                               (deps-parser/parse-config
-                                (slurp
-                                 (fs/file (:repo-root config)
-                                          (:deps-resolve-file config)))))
-                     ;; Inject the targets "profile"
-                     (assoc-in [:aliases ::roll :override-deps]
-                               (buildgraph->default-deps
-                                (:buildgraph config))))
-            opts (update opts :aliases (partial concat [::defaults ::roll]))]
-        (der/with-graph (:buildgraph config)
-          (mkcp/create-classpath
-           deps
-           ;; Bolt on our two magical internal profiles
-           opts)))
-      (rename-keys {:classpath :msg})
-      (assoc :intent :msg)
-      resp/response
-      (resp/status 200)))
+  (case (first request)
+    "compile"
+    (if-let [targets (map symbol (rest request))]
+      (-> (roll/roll config (:buildgraph config) targets)
+          (assoc :intent :json)
+          resp/response
+          (resp/status 200))
+
+      (-> {:intent :msg
+           :mgs "No target provided!"}
+          resp/response
+          (resp/status 400)))
+
+    (handler config stack request)))
 
 (defhandler list-targets
   "Enumerate all the available Rollfile targets."
   [handler config stack request]
-  (-> (:buildgraph config)
-      (select-keys [:targets])
+  (-> {:intent :json
+       :targets (-> config :buildgraph :targets keys)}
       resp/response
       (resp/status 200)))
-
-(defhandler uberjar
-  "Usage:
-  ./kat uberjar [target]
-
-Given a single target, produce an uberjar according to the target's config.
-
-WARNING: As this is a special case of the compile task, it may be removed."
-
-  [handler config stack request]
-  (if-let [target (second request)]
-    (if-let [target-coord (get-in config [:buildgraph :targets (symbol target)])]
-      (let [classpath (-> (stack config stack (list "classpath" "--" target)) :body :msg)
-            target-dir (fs/file (:repo-root config)
-                                (:target-dir config))
-            jar-name (:jar-name target-coord (str (name (:name target-coord)) ".jar"))
-            jar-file (fs/file target-dir jar-name)
-            canonical-path (.getCanonicalPath jar-file)
-            jar-path (.toPath jar-file)
-            msgs (with-out-str
-                   (binding [*err* *out*]
-                     (let [tmp (Files/createTempDirectory "uberjar" (make-array FileAttribute 0))]
-                       (run! #(ds/copy-source % tmp {}) (str/split classpath #":"))
-                       (ds/write-jar tmp jar-path))
-                     (println "Wrote jar" canonical-path)))]
-        (-> {:intent :msg, :msg msgs, :jar canonical-path}
-            resp/response
-            (resp/status 200)))
-      (-> "Could not produce an uberjar, no target coordinate was loaded!"
-          resp/response
-          (resp/status 400)))
-    (-> "Could not produce an uberjar, no target provided!"
-        resp/response
-        (resp/status 400))))
