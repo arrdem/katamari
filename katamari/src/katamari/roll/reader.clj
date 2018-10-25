@@ -11,6 +11,8 @@
             [pandect.algo.sha256 :as hash])
   (:import [java.io File]))
 
+;;;; I/O helpers
+
 (defn find-rollfiles [root-file]
   (->> (file-seq root-file)
        (filter #(= "Rollfile" (.getName ^File %)))
@@ -23,39 +25,67 @@
     (take-while #(not= % eof)
                 (repeatedly #(read rdr false eof)))))
 
-(defn read-rollfile [{:keys [repo-root] :as config} ^File rollfile]
+(defn dir-canonicalize-paths
+  "Helper for canonicalizing the `:paths` of a target."
+  [^File rollfile]
+  (fn [paths]
+    (let [dir (.getParent rollfile)]
+      (mapv (comp #(.getCanonicalPath %)
+                  (partial fs/file dir))
+            paths))))
+
+;;;; The intentional API
+
+(s/fdef read-rollfile
+  :ret ::rs/targets)
+
+(defn read-rollfile
+  "Given a config and a file, attempt to parse the file and generate part of a
+  buildgraph's `:targets` mapping corresponding to the targets in the file."
+  [{:keys [repo-root] :as config} ^File rollfile]
   (->> (read-all ((comp #(java.io.PushbackReader. %) jio/reader) rollfile))
        (mapv (fn [read-data]
-               (if-let [explain (s/explain-data ::rs/def read-data)]
+               (if-let [explain (s/explain-data ::rs/rule read-data)]
                  (throw (ex-info "Unable to parse rollfile!"
                                  (merge explain
                                         (meta read-data)
                                         {:file (.getCanonicalPath rollfile)
                                          :repo repo-root})))
-                 (-> (s/conform ::rs/def read-data)
-                     (update :paths (partial map (comp #(.getCanonicalPath %)
-                                                       (partial fs/file (.getParent rollfile)))))
+                 (-> (s/conform ::rs/rule read-data)
+                     (update :paths (dir-canonicalize-paths rollfile))
                      (update :deps canonicalize-all-syms)))))
-       (map (juxt :name
+       (map (juxt :target
                   #(assoc % :rollfile (.getCanonicalPath rollfile))))
        (into {})))
 
-(defn error-on-conflicts [{:keys [name] :as l l-file :path} {r-file :path :as r}]
+(defn error-on-conflicts
+  "Helper used when merging partial target mappings to surface name conflicts."
+  [{:keys [target] :as l l-file :rollfile}
+   {r-file :rollfile :as r}]
   (if-not (= l r)
     (throw (IllegalStateException.
             (format "Found conflicting definitions of %s in files %s, %s"
-                    name l-file r-file)))
+                    target l-file r-file)))
     r))
 
-(defn targets-to-buildgraph [targets]
+(s/fdef targets-to-buildgraph
+  :args (s/cat :targets ::rs/targets)
+  :ret ::rs/buildgraph)
+
+(defn targets-to-buildgraph
+  "Given a target mapping, compute a buildgraph from them."
+  [targets]
   {:targets targets
    :rollfiles (->> (vals targets)
                    (group-by :rollfile)
                    (map (fn [[f targets]]
                           [f {:mtime (.lastModified ^File (fs/file f))
                               :sha256sum (hash/sha256-file f)
-                              :targets (mapv :name targets)}]))
+                              :targets (mapv :target targets)}]))
                    (into {}))})
+
+(s/fdef compute-buildgraph
+  :ret ::rs/buildgraph)
 
 (defn compute-buildgraph
   "Given a repository, (re)compute the entire build graph non-incrementally."
@@ -67,7 +97,11 @@
          targets-to-buildgraph)))
 
 (defn- refresh*
-  "Implementation detail of `refresh-whole-buildgraph` and `refresh-buildgraph-for-target`."
+  "Implementation detail of `refresh-whole-buildgraph` and
+  `refresh-buildgraph-for-target`.
+
+  Used to factor out the common control flow of reloading only some set of
+  entities, and report the diff thereof."
   [config
    {old-files :rollfiles
     old-targets :targets
@@ -111,6 +145,9 @@
         :changed-rolfiles changed-paths
         :deleted-rollfiles deleted-paths})}))
 
+(s/fdef refresh-buildgraph-for-changes
+  :ret ::rs/buildgraph)
+
 (defn refresh-buildgraph-for-changes
   "Given a repository and a previous build graph, refresh any targets
   whose definitions could have changed as observed via mtime or
@@ -131,7 +168,13 @@
                              [rollfile path]))
                          [rollfile path]))))
              ((juxt (partial map first) (partial map second))))]
-    (refresh* config previous-graph changed-rollfiles changed-paths)))
+    (refresh* config
+              previous-graph
+              changed-rollfiles
+              changed-paths)))
+
+(s/fdef refresh-buildgraph-for-targets
+  :ret ::rs/buildgraph)
 
 (defn refresh-buildgraph-for-targets
   "Given a repository, a previous build graph, and a list of targets in
@@ -142,5 +185,10 @@
     old-targets :targets
     :as previous-graph}
    refresh-targets]
-  (let [refresh-paths (into #{} (map #(get-in previous-graph [:targets % :rollfile])) refresh-targets)]
-    (refresh* config previous-graph (map fs/file refresh-paths) refresh-paths)))
+  (let [refresh-paths (->> refresh-targets
+                           (map #(get-in previous-graph [:targets % :rollfile]))
+                           (into #{}))]
+    (refresh* config
+              previous-graph
+              (map fs/file refresh-paths)
+              refresh-paths)))

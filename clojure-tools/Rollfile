@@ -8,4 +8,3 @@
    :deps
    {org.clojure/clojure nil
     org.clojure/tools.deps.alpha nil}))
-

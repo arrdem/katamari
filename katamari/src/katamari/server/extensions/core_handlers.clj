@@ -141,7 +141,7 @@ Reports the ports on which the HTTP and nREPL servers are running."
   "Enumerate the available tasks.
 
 Do not report their help information."
-  
+
   [handler config stack request]
   (update (stack config stack (cons "meta" (rest request)))
           :body

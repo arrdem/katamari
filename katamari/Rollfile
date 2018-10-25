@@ -1,6 +1,6 @@
 ;; -*- mode: clojure; -*-
 
-(deftarget me.arrdem/lib-katamari
+(deftarget me.arrdem/katamari
   (clojure-library
    :paths
    ["src"
@@ -22,11 +22,18 @@
     pandect/pandect nil
     instaparse/instaparse nil
     clj-fuzzy nil
+    io.replikativ/hasch nil
 
     ;; Embedded development
     nrepl/nrepl nil
     cider/cider-nrepl nil}))
 
-(deftarget me.arrdem/katamari
-  (jarfile
-   :deps {me.arrdem/lib-katamari nil}))
+(deftarget me.arrdem/katamari+src-jar
+  (jar
+   :deps {me.arrdem/katamari nil}
+   :jar-name "katamari.jar"))
+
+(deftarget me.arrdem/katamari+uberjar
+  (uberjar
+   :deps {me.arrdem/katamari nil}
+   :jar-name "katamari-standalone.jar"))

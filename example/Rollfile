@@ -1,0 +1,23 @@
+;; -*- mode: clojure; -*-
+
+(deftarget example/javac
+  (java-library
+   :paths ["src/main/java"]))
+
+(deftarget example/clj
+  (clojure-library
+   :paths ["src/main/clj"]
+   :deps {example/javac nil
+          org.clojure/clojure nil}))
+
+(deftarget example/clj+jar
+  (jar
+   :jar-name "clj.jar"
+   :deps {example/javac nil
+          example/clj nil}))
+
+(deftarget example/clj+uberjar
+  (uberjar
+   :jar-name "clj-standalone.jar"
+   :deps {example/javac nil
+          example/clj nil}))
