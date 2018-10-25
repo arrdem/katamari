@@ -30,6 +30,11 @@ Then from within a git repo, run
 
 ```
 $ kat start-server
+Starting server ...
+Waiting for it to become responsive \
+Started server!
+  http port: 3636
+  nrepl port: 3637
 ```
 
 This will prompt Katamari to self-bootstrap, downloading the latest server standalone jar and creating a couple files in the root of your repository.
@@ -75,16 +80,18 @@ In Katamari, this dependency is explicit.
 One could write the following rollfile -
 
 ```clj
+(deftarget my/java-library
+  (java-library
+   :paths ["src/main/jvm"]))
+
 (deftarget my/simple-app
   (clojure-library
    :paths ["src/clj/main"]
    :deps {my/java-library nil
           org.clojure/clojure nil}))
-  
-(deftarget my/java-library
-  (java-library
-   :paths ["src/main/jvm"]))
 ```
+
+The targets don't have to be dependency ordered, but it's convenient to write them as such.
 
 Katamari, like Leiningen, will compile your Java sources before doing anything with your Clojure target.
 However this dependency tree can go as deep as you would like it to.
@@ -97,7 +104,77 @@ It's already "up to date".
 
 ### Tasks
 
-Katamari's tasks are extremely a work in progress, so more documentation here will have to come later.
+The Katamari CLI client implements several tasks - operations implemented either on the server side or as a hybrid of server and client actions.
+We can see what tasks Katamari is aware of by issuing the `list-tasks` (builtin) command.
+
+```
+$ ./kat list-tasks
+Commands:
+  compile
+  help
+  list-targets
+  list-tasks
+  meta
+  restart-server
+  show-request
+  start-server
+  stop-server
+```
+
+The most significant of these are probably `show-request`, which allows you to inspect both your build graph and configuration, `list-targets` which gives you a quick way to see what targets are visible in the project and `compile` which is used to compile targets and their dependencies.
+
+For instance in Katmari's own repository, the `example` tree is used to define examples of all of Katamari's available targets.
+That tree has a couple targets - `example/javac`, `example/clj`, `example/clj+jar` and `example/clj+uberjar`.
+
+Lets try building `example/clj+uberjar` - 
+
+```
+$ ./kat compile example/clj+uberjar
+{
+  "example/javac": {
+    "type": "katamari.roll.extensions.jvm/product",
+    "from": "example/javac",
+    "mvn/manifest": "roll",
+    "deps": null,
+    "paths": [
+      "/private/var/folders/z4/6b9f3h4x2dv6gvxbwyc55cwnwhsd5r/T/javac6828446538002526748"
+    ]
+  },
+  "example/clj": {
+    "type": "katamari.roll.extensions.clj/product",
+    "from": "example/clj",
+    "mvn/manifest": "roll",
+    "paths": [
+      "/Users/arrdem/katamari/example/src/main/clj"
+    ],
+    "deps": {
+      "example/javac": null,
+      "org.clojure/clojure": null
+    }
+  },
+  "example/clj+uberjar": {
+    "type": "katamari.roll.extensions.jar/product",
+    "from": "example/clj+uberjar",
+    "mvn/manifest": "roll",
+    "paths": [
+      "/Users/arrdem/katamari/target/clj-standalone.jar"
+    ],
+    "deps": {
+      "example/javac": null,
+      "example/clj": null
+    }
+  },
+  "intent": "json"
+}
+```
+
+This is a build product - or more specifically it's all the build products for all the artifacts in the compilation graph of `example/clj+uberjar`.
+`clj+uberjar` depends on the `clj` target, which depends on `javac`.
+When compiling `clj+uber`, first `javac` is compiled to produce a directory of `.class` files, visible in the `"paths"` array of the `javac` result.
+That result is consumed when producing the `clj` result, and all of those paths (and the depended jars) get packed into the file `target/clj-standalone.jar` if you care to unzip it and look.
+
+Note that unlike Leiningen and other tools, Katamari makes no attempt to automate generating manifests - at least not yet.
+Jar manifests are dependencies which must be built and included when packing a jar, just like any other dependency.
 
 ## Documentation
 
