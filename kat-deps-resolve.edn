@@ -14,6 +14,9 @@
   ^:group org.apache.maven.resolver {:mvn/version "1.1.1"}
   ^:group org.apache.maven {:mvn/version "3.5.2"}
 
+  ;; Deploying
+  seancorfield/depstar {:mvn/version "0.1.5"}
+
   ;; Webshite
   ring/ring {:mvn/version "1.7.0-RC1"}
   ring/ring-jetty-adapter {:mvn/version "1.7.0-RC1"}
@@ -21,11 +24,11 @@
   compojure/compojure {:mvn/version "1.6.1"}
   cheshire/cheshire {:mvn/version "5.8.0"}
 
+  ;; Dev tools
   instaparse/instaparse {:mvn/version"1.4.9"}
   io.replikativ/hasch {:mvn/version "0.3.5"}
   pandect/pandect {:mvn/version "0.6.1"}
   clj-fuzzy {:mvn/version "0.4.1"}
-
   me.raynes/fs {:mvn/version "1.4.6"}
 
   ;; Embedded development

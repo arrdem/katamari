@@ -18,7 +18,7 @@
     compojure/compojure nil
     cheshire/cheshire nil
 
-    healthfinch/depstar nil
+    seancorfield/depstar nil
     pandect/pandect nil
     instaparse/instaparse nil
     clj-fuzzy nil
