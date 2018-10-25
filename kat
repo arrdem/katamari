@@ -67,7 +67,7 @@ if [ ! -f "${KAT_CONFIG}" ]; then
 
     bootstrap_jar="${KAT_SERVER_WORK_DIR}/bootstrap.jar"
     if [ ! -f "${bootstrap_jar}" ]; then
-        curl -L https://github.com/arrdem/katamari/releases/download/v0.0.3/katamari-0.0.3.jar \
+        curl -L https://github.com/arrdem/katamari/releases/download/v0.0.4/katamari-0.0.4.jar \
              --output "${bootstrap_jar}"
     fi
 
