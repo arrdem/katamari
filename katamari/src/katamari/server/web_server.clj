@@ -32,8 +32,8 @@
 (defn json-response
   "Helper for returning JSON coded responses.
 
-  JSON codes the given object in a single shot, returning a 200 response by default unless the user
-  specifies an optional status code."
+  JSON codes the given object in a single shot, returning a 200 response by
+  default unless the user specifies an optional status code."
   ([obj]
    (json-response obj 200))
   ([obj code]
@@ -92,9 +92,18 @@
   (let [cfg (conf/load config-file key-fn)]
     (log/info "Loaded config" cfg)
     (doseq [path (:server-extensions cfg)]
-      (try (require (symbol path))
-           (log/infof "Loaded extension %s" path)
-           (catch Exception e
-             (log/error e "Failed to load extension!"))))
+      (let [start (System/currentTimeMillis)
+            libs (clojure.core/loaded-libs)
+            error? (try (require (symbol path))
+                        (catch Exception e e))
+            libs* (clojure.core/loaded-libs)
+            end (System/currentTimeMillis)]
+        (if error?
+          (log/fatalf error? "Failed to load extension %s" path)
+          (do (log/infof "Loaded extension %s in %d ms" path (- end start))
+              (doseq [lib libs*
+                      :when (not (contains? libs lib))
+                      :when (not= path (name lib))]
+                (log/infof "  Also loaded %s" lib))))))
     (start-web-server! cfg)
     (start-nrepl-server! cfg)))

@@ -8,9 +8,11 @@
 
 ;;; Manifests
 
-(def ^{:doc "Multi-spec. Given a rule, being a list `(manifest & kvs)`,
-  dispatch on the manifest to methods returning an `s/keys*` form for the
-  remaining kvs. These kvs together with the manifest will define a build rule."
+(def ^{:doc "Multi-spec.
+
+  Given a rule, being a list `(manifest & kvs)`, dispatch on the manifest to
+  methods returning an `s/keys*` form for the remaining kvs. These kvs together
+  with the manifest will define a build rule."
   :arglists '([rule-expr])}
   parse-manifest
   @#'rs/parse-manifest)
@@ -70,10 +72,6 @@ in the filesystem or on the path."}
   (fn [_conf _graph manifest]
     manifest))
 
-(defmethod manifest-prep :default [config buildgraph manifest]
-  #_(printf "No configured prep.manifest for %s\n" manifest)
-  [config buildgraph])
-
 (s/fdef rule-prep
   :args (s/cat :conf any?
                :graph :katamari.roll.specs/buildgraph
@@ -91,11 +89,6 @@ By default, tasks require no preparation."}
 
   rule-prep
   #'dispatch)
-
-(defmethod rule-prep :default [config buildgraph target rule]
-  #_(printf "No configured prep.rule for manifest %s (target %s)\n"
-            (rule-manifest rule) target)
-  [config buildgraph])
 
 ;;; The dependency tree
 
@@ -115,31 +108,32 @@ without having to take separate steps to recover information about those deps."}
   rule-inputs
   #'dispatch)
 
-(defmethod rule-inputs :default [config buildgraph target rule]
-  (throw (ex-info "No `rule-inputs` implementation for manifest!"
-                  {:target target
-                   :rule rule
-                   :manifest (rule-manifest rule)})))
-
 (defmulti
-  ^{:arglusts '([config buildgraph target rule products inputs])
+  ^{:arglists '([config buildgraph target rule products inputs])
     :doc "Compute and return a content hash string for this build target.
 
 The returned string is required to match `#\"[a-z0-9]{32,}\"`, must be
 deterministic, cheap to compute and factor in the `rule-id` of its inputs as
 well as the content of any files on the path.
 
+Any change to your rule's inputs which would cause a different output to be
+produced MUST cause the key returned by this function to change.
+
 Invoked once per rule in the build graph, in topological order."}
 
   rule-id
   #'dispatch)
 
-(defmethod rule-id :default [config buildgraph target rule products inputs]
-  )
-
 (defmulti
   ^{:arglists '([config buildgraph target rule products inputs])
-    :doc "Apply the rule to its inputs, producing a build product."}
+    :doc "Apply the rule to its inputs, producing a build product.
+
+Rule builds will execute with `#'raynes.fs/*cwd*` bound to a writable output
+directory unique to this build rule by it's self-reported `rule-id`. Rules MUST
+produce any file products which will be referred to in the build product into
+this directory.
+
+Rules are strongly discouraged from using say other tempdirs."}
 
   rule-build
   #'dispatch)

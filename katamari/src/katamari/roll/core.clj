@@ -2,7 +2,9 @@
   "The API by which to execute rolling."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
+            [me.raynes.fs :as fs]
             [katamari.diff :as diff]
+            [katamari.roll.cache :as cache]
             [katamari.roll.specs :as rs]
             [katamari.roll.extensions :refer :all]))
 
@@ -164,8 +166,9 @@
 
 (s/fdef roll
   :args (s/cat :conf any?
+               :cache any?
                :graph ::rs/buildgraph
-               :target (s/? ::rs/target))
+               :targets (s/? (s/coll-of ::rs/target)))
   :ret (s/map-of ::rs/target any?))
 
 (defn roll
@@ -175,21 +178,29 @@
   supplied only that target and its dependencies.
 
   Return a mapping from built targets to their products."
-  [config {:keys [targets] :as buildgraph} & [targets?]]
+  [config cache {:keys [targets] :as buildgraph} & [targets?]]
   (let [[config targets plan] (plan config buildgraph targets?)]
     (reduce (fn [products target]
-              (let [rule (get targets target)
-                    inputs (into {}
-                                 (map (fn [[key targets]]
-                                        [key (mapv #(get products %) targets)]))
-                                 (rule-inputs config buildgraph target rule))]
+              (let [rule    (get targets target)
+                    inputs  (into {}
+                                  (map (fn [[key targets]]
+                                         [key (mapv #(get products %) targets)]))
+                                  (rule-inputs config buildgraph target rule))
+                    id (rule-id config buildgraph target rule products inputs)
+                    _ (printf "roll] Building %s@%s\n" target id)
+                    product (if-let [cached-product (cache/get-product cache id)]
+                              (do (printf "roll] Hit the product cache!\n")
+                                  cached-product)
+                              ;; Fill the cache
+                              (do (printf "roll] Missed the cache, filling\n")
+                                  (let [dir (cache/get-workdir cache id)
+                                        product (-> (fs/with-cwd dir
+                                                      (rule-build config buildgraph
+                                                                  target rule
+                                                                  products inputs))
+                                                    (assoc :id id))]
+                                    (cache/put-product cache id product)
+                                    product)))]
                 (assoc products
-                       target (rule-build config buildgraph
-                                          target rule
-                                          products inputs))))
-            ;; FIXME (arrdem 2018-10-20):
-            ;;   Lol no product caching
-            {}
-            ;; FIXME (arrdem 2018-10-20):
-            ;;   Lol sequential execution
-            (apply concat plan))))
+                       target product)))
+            {} (apply concat plan))))

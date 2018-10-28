@@ -119,13 +119,10 @@
                             (mapcat file-seq)
                             (filter #(.isFile %))
                             (map #(.getCanonicalPath %)))
-          dest-dir (->> (into-array FileAttribute [])
-                        (Files/createTempDirectory "javac")
-                        (.toFile)
-                        (.getCanonicalPath))]
+          dest-dir fs/*cwd*]
 
       ;; FIXME (arrdem 2018-10-21):
-      ;;   Capture the exit results nicely
+      ;;   Capture the exit results! at all! nicely for extra credit.
       (when source-files
         (let [cp (make-classpath config products
                                  {:deps (:deps target)})
@@ -135,6 +132,8 @@
                     target-version (into ["-target" target-version])
                     true (-> (into ["-d" dest-dir])
                              (into source-files)))]
+          ;; FIXME (arrdem 2018-10-28):
+          ;;   Capture failures!
           (apply sh/sh cmd)))
 
       {:type ::product

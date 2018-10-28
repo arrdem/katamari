@@ -56,8 +56,7 @@
 (defmethod ext/rule-build 'jar
   [config buildgraph target rule products {:keys [targets] :as inputs}]
 
-  (let [target-dir (fs/file (:repo-root config)
-                            (:target-dir config))
+  (let [target-dir fs/*cwd*
         jar-name (:jar-name rule (str (name target) ".jar"))
         jar-file (fs/file target-dir jar-name)
         canonical-path (.getCanonicalPath jar-file)]
@@ -104,8 +103,7 @@
         (rejvm/make-classpath config products
                               {:deps (:deps rule)})
 
-        target-dir (fs/file (:repo-root config)
-                            (:target-dir config))
+        target-dir fs/*cwd*
         jar-name (:jar-name rule (str (name target) ".jar"))
         jar-file (fs/file target-dir jar-name)
         canonical-path (.getCanonicalPath jar-file)]

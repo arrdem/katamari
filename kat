@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 ## About
 #
 # A shim for starting the Katamari server, and sending it requests
@@ -24,7 +26,7 @@ function _get_conf() {
 export KAT="${0}"
 
 # Find java executable
-if [ -z "${JAVA_CMD}" ]; then
+if [ -z "${JAVA_CMD+x}" ]; then
     set +e
     export JAVA_CMD=$(type -p java)
     set -e
@@ -39,38 +41,38 @@ if [ -z "${JAVA_CMD}" ]; then
 fi
 
 # The kat install location
-if [ -z "${KAT_BIN_ROOT}" ] ; then
+if [ -z "${KAT_BIN_ROOT+x}" ] ; then
     export KAT_BIN_ROOT=$(dirname $(realpath "${0}"))
 fi
 
 # The kat repo root
-if [ -z "${KAT_REPO_ROOT}" ]; then
+if [ -z "${KAT_REPO_ROOT+x}" ]; then
     # FIXME (reid.mckenzie 2018-10-16):
     #   Decouple Kat from git's root?
-  export KAT_REPO_ROOT=$(realpath $(git rev-parse --show-toplevel))
+    export KAT_REPO_ROOT=$(realpath $(git rev-parse --show-toplevel))
 fi
 
-if [ -z "${KAT_CONFIG}" ]; then
+if [ -z "${KAT_CONFIG+x}" ]; then
     KAT_CONFIG="${KAT_REPO_ROOT}/kat.conf"
 fi
 
 # Where do the cache, lockfiles and other state live
-if [ -z "${KAT_SERVER_WORK_DIR}" ]; then
+if [ -z "${KAT_SERVER_WORK_DIR+x}" ]; then
     KAT_SERVER_WORK_DIR="${KAT_REPO_ROOT}/"$(_get_conf "${KAT_CONFIG}" server_work_dir .kat.d)
 fi
 
 ## Bootstrapping
+if [ ! -d "${KAT_SERVER_WORK_DIR}" ]; then
+    mkdir "${KAT_SERVER_WORK_DIR}"
+fi
+
+bootstrap_jar="${KAT_SERVER_WORK_DIR}/bootstrap.jar"
+if [ ! -f "${bootstrap_jar}" ]; then
+    curl -L https://github.com/arrdem/katamari/releases/download/v0.0.4/katamari-0.0.4.jar \
+         --output "${bootstrap_jar}"
+fi
+
 if [ ! -f "${KAT_CONFIG}" ]; then
-    if [ ! -d "${KAT_SERVER_WORK_DIR}" ]; then
-        mkdir "${KAT_SERVER_WORK_DIR}"
-    fi
-
-    bootstrap_jar="${KAT_SERVER_WORK_DIR}/bootstrap.jar"
-    if [ ! -f "${bootstrap_jar}" ]; then
-        curl -L https://github.com/arrdem/katamari/releases/download/v0.0.4/katamari-0.0.4.jar \
-             --output "${bootstrap_jar}"
-    fi
-
     cat <<EOF > "${KAT_CONFIG}"
 # Katamari's config file
 
@@ -93,12 +95,15 @@ server_ns=katamari.server.web-server
 #   How do I get away from having to code this? Bootstrapping without a dist is HARD
 server_classpath=$(realpath "${bootstrap_jar}")
 
-# The log to record build history and any errors
-server_log_file=kat.log
-
 # Where to put cached build products and analysis data
 # This cache lives at the repo root
 server_work_dir=.kat.d
+# The log to record build history and any errors, lives under server_work_dir
+server_log_file=kat.log
+# server build cache, lives under server_work_dir
+server_build_cache=buildcache
+# 30 day product TTL
+server_build_cache_ttl=2592000000
 
 # (class)paths to (load) after application boot but before the server(s) start
 server_extensions=[
@@ -111,6 +116,7 @@ server_extensions=[
   katamari.server.extensions.core-handlers
   katamari.server.extensions.fuzzy-not-found
   katamari.server.extensions.roll-handlers
+  katamari.roll.extensions.defaults
   katamari.roll.extensions.jvm
   katamari.roll.extensions.clj
   katamari.roll.extensions.jar
@@ -129,8 +135,10 @@ deps_defaults_data={}
 
 target_dir=target
 EOF
+fi
 
-    [ ! -f kat-deps-defaults.edn ] && cat <<EOF > kat-deps-defaults.edn
+if [ ! -f kat-deps-defaults.edn ]; then
+    cat <<EOF > kat-deps-defaults.edn
 ;; An implicit defaults file which is passed to deps.edn as more deps data.
 ;;
 ;; This file should be used to configure any Maven or other repositories, to provide global
@@ -144,58 +152,62 @@ EOF
  {
   "central" {:url "https://repo1.maven.org/maven2/"}
   "clojars" {:url "https://repo.clojars.org/"}
-  }
  }
+}
 EOF
+fi
 
-    [ ! -f kat-deps-resolve.edn ] && cat <<EOF > kat-deps-resolve.edn
+if [ ! -f kat-deps-resolve.edn ]; then
+    cat <<EOF > kat-deps-resolve.edn
 ;; Deps data which getsapplied as an always-on resolve alias.
 ;;
 ;; This file should be used for version pinning and overrides where required.
 
 {:default-deps
  {org.clojure/clojure {:mvn/version "1.9.0"}
-  }
  }
+}
 EOF
+fi
 
-    [ ! -d target ] && mdir target
+if [ ! -d target ]; then
+    mkdir target
 fi
 
 # Katamari's server port
-if [ -z "${KAT_SERVER_HTTP_PORT}" ]; then
+if [ -z "${KAT_SERVER_HTTP_PORT+x}" ]; then
     KAT_SERVER_HTTP_PORT=$(_get_conf "${KAT_CONFIG}" server_http_port 3636)
 fi
 
 # Katamari's server port
-if [ -z "${KAT_SERVER_ADDR}" ]; then
+if [ -z "${KAT_SERVER_ADDR+x}" ]; then
     KAT_SERVER_ADDR=$(_get_conf "${KAT_CONFIG}" server_addr localhost)
 fi
 
 # Katamari's classpath
-if [ -z "${KAT_SERVER_CP}" ]; then
+if [ -z "${KAT_SERVER_CP+x}" ]; then
     KAT_SERVER_CP=$(_get_conf "${KAT_CONFIG}" server_classpath)
 
     # FIXME (arrdem 2018-09-26):
     #   How to get away from setting this? Can it be made stand-alone?
-    if [ -z "${KAT_SERVER_CP}" ]; then
+    if [ -z "${KAT_SERVER_CP+x}" ]; then
         >&2 echo "Couldn't find kat's server classpath. Please set 'server_classpath'."
         exit 1
     fi
 fi
 
 # How long to wait for the server to come up
-if [ -z "${KAT_SERVER_START_SEC}" ]; then
+if [ -z "${KAT_SERVER_START_SEC+x}" ]; then
     KAT_SERVER_START_SEC=$(_get_conf "${KAT_CONFIG}" server_start_sec 15)
 fi
 
 # What namespace to boot
-if [ -z "${KAT_SERVER_NS}" ]; then
+if [ -z "${KAT_SERVER_NS+x}" ]; then
     KAT_SERVER_NS=$(_get_conf "${KAT_CONFIG}" server_ns 'katamari.server.web-server')
 fi
 
 # Where do the logs go
-if [ -z "${KAT_SERVER_LOG_FILE}" ]; then
+if [ -z "${KAT_SERVER_LOG_FILE+x}" ]; then
     KAT_SERVER_LOG_FILE=$(_get_conf "${KAT_CONFIG}" server_log_file kat.log)
 fi
 
@@ -228,7 +240,7 @@ EOF
 
     CWD=${KAT_SERVER_WORK_DIR} "${JAVA_CMD}" -cp "${KAT_SERVER_CP}" \
        clojure.main -m "${KAT_SERVER_NS}" "${KAT_CONFIG}" \
-       2>&1 >> "${KAT_SERVER_LOG_FILE}" &
+       >> "${KAT_SERVER_WORK_DIR}/${KAT_SERVER_LOG_FILE}" &
     KAT_SERVER_PID="$!"
 
     disown "${KAT_SERVER_PID}"
@@ -355,6 +367,8 @@ EOF
 ## Core behavior
 
 while true; do
+    [ -z "${1+x}" ] && break
+
     case "${1}" in
         -r|--raw)
             KAT_INTENT=raw

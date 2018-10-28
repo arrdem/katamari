@@ -10,8 +10,12 @@
    {org.clojure/clojure nil
     org.clojure/tools.deps.alpha nil
     org.clojure/clojure-tools nil
-    org.clojure/tools.logging nil
 
+    ;; The logging swamp
+    org.clojure/tools.logging nil
+    ch.qos.logback/logback-classic nil
+
+    ;; Ring
     ring/ring nil
     ring/ring-jetty-adapter nil
     ring/ring-json nil
@@ -23,6 +27,7 @@
     instaparse/instaparse nil
     clj-fuzzy nil
     io.replikativ/hasch nil
+    com.taoensso/nippy nil
 
     ;; Embedded development
     nrepl/nrepl nil

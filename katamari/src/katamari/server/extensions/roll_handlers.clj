@@ -18,6 +18,7 @@
             ;; Katamari
             [katamari.roll.core :as roll]
             [katamari.roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
+            [katamari.roll.cache :as cache]
             [katamari.deps.extensions.roll :as der]
             [katamari.server.extensions :refer [defhandler defwrapper]]
 
@@ -40,13 +41,19 @@
                           #(or (and % (refresh-buildgraph-for-changes config %))
                                (compute-buildgraph config)))
                    (:repo-root config))]
-    (handler (assoc config :buildgraph graph) stack request)))
+    (handler (assoc config
+                    :buildgraph graph
+                    :buildcache (cache/->buildcache
+                                 (fs/file (:repo-root config)
+                                          (:server-work-dir config)
+                                          (:server-build-cache config))))
+             stack request)))
 
 (defhandler compile
   "Compile specified target(s), producing any outputs.
 
 Usage:
-  ./compile target
+  ./kat compile target1 target2...
 
 Causes the specified targets to be compiled.
 
@@ -57,7 +64,7 @@ Produces a map from target identifiers to build products."
   (case (first request)
     "compile"
     (if-let [targets (map symbol (rest request))]
-      (-> (roll/roll config (:buildgraph config) targets)
+      (-> (roll/roll config (:buildcache config) (:buildgraph config) targets)
           (assoc :intent :json)
           resp/response
           (resp/status 200))
@@ -76,3 +83,28 @@ Produces a map from target identifiers to build products."
        :targets (-> config :buildgraph :targets keys)}
       resp/response
       (resp/status 200)))
+
+(defhandler clean-cache
+  "Flush the cache on a TTL basis.
+
+Usage:
+  ./kat clean-cache [ttl-ms]
+
+Removes cache entries older than the specified number of milliseconds,
+defaulting to the server's configured cache TTL."
+  [handler config stack request]
+  (case (first request)
+    "clean-cache"
+    (if-let [ttl (or (some-> request second Long/parseLong)
+                     (some-> config :server-build-cache-ttl Long/parseLong))]
+      (let [products (cache/filter-cache-by-ttl (:buildcache config) ttl)]
+        (cache/clean-products products)
+        (-> {:intent :json
+             :deleted-keys (map first products)}
+            resp/response
+            (resp/status 200)))
+
+      (-> {:intent :msg
+           :msg "No TTL provided!"}
+          resp/response
+          (resp/status 400)))))

@@ -1,8 +1,9 @@
 (ns user
-  (:require [katamari.roll.reader]))
+  (:require [me.raynes.fs :as fs]
+            [katamari.roll.reader]))
 
 (def +root+
-  "/Users/reid.mckenzie/Documents/dat/git/arrdem/katamari")
+  (str (System/getenv "HOME") "/doc/dat/git/arrdem/katamari"))
 
 (def +conf+
   (merge (katamari.conf/load (str +root+ "/kat.conf")
@@ -11,3 +12,9 @@
 
 (def +graph+
   (katamari.roll.reader/compute-buildgraph +conf+))
+
+(def +cache+
+  (katamari.roll.cache/->buildcache
+   (fs/file (:repo-root +conf+)
+            (:server-work-dir +conf+)
+            (:server-build-cache +conf+))))
