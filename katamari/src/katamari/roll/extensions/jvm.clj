@@ -132,7 +132,7 @@
                            (into [:dir fs/*cwd*])))
             res (apply sh/sh cmd)]
 
-        (when (zero? (:exit res))
+        (when-not (zero? (:exit res))
           (throw (ex-info "Failed to javac"
                           (assoc res
                                  :target target
