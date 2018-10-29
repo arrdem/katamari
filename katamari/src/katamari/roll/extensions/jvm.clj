@@ -120,8 +120,6 @@
                                        (.isFile %)))
                           (map #(.getCanonicalPath %)))
         dest-dir (.getCanonicalPath fs/*cwd*)]
-    ;; FIXME (arrdem 2018-10-21):
-    ;;   Capture the exit results! at all! nicely for extra credit.
     (when source-files
       (let [cp (make-classpath config products
                                {:deps (:deps target)})
