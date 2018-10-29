@@ -165,14 +165,10 @@
 ;; expand-deps
 
 (defn- use-dep [default-deps override-deps [lib coord]]
-  (vector lib
-          (or (get override-deps lib)
-              (if-let [n (namespace lib)]
-                (get override-deps (symbol n)))
-              coord
-              (get default-deps lib)
-              (if-let [n (namespace lib)]
-                (get default-deps (symbol n))))))
+  [lib
+   (or (get override-deps lib)
+       coord
+       (get default-deps lib))])
 
 (defn- expand-deps
   [deps default-deps override-deps config verbose]

@@ -37,39 +37,38 @@
 (defn merge-deps [& deps]
   (reader/merge-deps deps))
 
-(defn make-classpath [{:keys [repo-root
-                              deps-defaults-file
-                              deps-defaults-data
-                              deps-resolve-file]
+(defn canonicalize-deps [deps config]
+  (let [{:keys [default-deps override-deps]} (get-in config [:deps :aliases ::roll])]
+    (into {}
+          (map (fn [[lib coord]]
+                 ;; cribbed from clojure.tools.deps.alpa/use-dep, private
+                 [lib
+                  (or
+                   ;; precise overrides win
+                   (get override-deps lib)
+                   ;; followed by group level overrides
+                   (if-let [n (namespace lib)]
+                     (get override-deps (symbol n)))
+                   ;; any non-nil pinning should win over any defaults
+                   coord
+                   ;; precise defaults win
+                   (get default-deps lib)
+                   ;; group defaults are lowest priority
+                   (if-let [n (namespace lib)]
+                     (get default-deps (symbol n))))]))
+          deps)))
+
+(defn make-classpath [{:keys [deps]
                        :as config}
                       products
-                      deps]
-  (let [deps (cond-> (-> deps
-                         ;; Inject the defaults "profile"
-                         (assoc-in [:aliases ::roll]
-                                   ;; FIXME (arrdem 2018-10-21):
-                                   ;;   Cache this
-                                   (deps-parser/parse-config
-                                    (slurp
-                                     (fs/file repo-root deps-resolve-file))))
-                         ;; Inject the targets "profile"
-                         (assoc-in [:aliases ::roll :override-deps]
-                                   (products->default-deps products)))
-
-               ;; defaults file
-               (not-empty deps-defaults-file)
-               (merge-deps (reader/read-deps
-                            [(fs/file repo-root deps-defaults-file)]))
-
-               ;; defaults data
-               (not-empty deps-defaults-data)
-               (merge-deps (deps-parser/parse-config deps-defaults-data)))
-        opts {:aliases [::roll]}]
-
-    (mkcp/create-classpath
-     deps
-     ;; Bolt on our two magical internal profiles
-     opts)))
+                      deps*]
+  (mkcp/create-classpath
+   ;; Inject the (dynamic!) overrides for product coords
+   (-> (merge-deps deps deps*)
+       (update-in [:aliases ::roll :override-deps]
+                  merge (products->default-deps products)))
+   ;; Bolt on our magical internal profiles
+   {:aliases [::roll]}))
 
 ;;;; Java library
 
@@ -92,8 +91,8 @@
                     ::source-version
                     ::target-version]))
 
-#_(defmethod ext/rule-prep 'java-library [config buildgraph target rule]
-    )
+(defmethod ext/rule-prep 'java-library [config targets target rule]
+  [config (update-in targets [target :deps] canonicalize-deps config)])
 
 (defmethod ext/rule-inputs 'java-library
   [config {:keys [targets] :as buildgraph} target rule]

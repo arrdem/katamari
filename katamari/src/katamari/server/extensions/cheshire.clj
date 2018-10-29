@@ -7,5 +7,8 @@
 
 (add-encoder clojure.lang.Namespace
              (fn [ns jsonGenerator]
-               (.writeString jsonGenerator (pr-str ns))))
+               (.writeString jsonGenerator (format "#namespace %s" (ns-name ns)))))
 
+(add-encoder java.io.File
+             (fn [^java.io.File f jsonGenerator]
+               (.writeString jsonGenerator (format "#file %s" (.getAbsolutePath f)))))

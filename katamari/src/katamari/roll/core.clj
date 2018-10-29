@@ -39,7 +39,7 @@
                                 e))))]
         (recur config*
                (diff/without-diff buildgraph*)
-               (->> (diff/diff buildgraph*)
+               (->> (diff/get-diff buildgraph*)
                     (keep (fn [[op _ oldval newval]]
                             (when (and (#{:change :insert} op)
                                        (not= oldval newval))
@@ -76,15 +76,15 @@
                                 e))))]
         (recur config*
                (diff/without-diff buildgraph*)
-               (->> (diff/diff buildgraph*)
-                    (keep (fn [[op key oldval newval]]
-                            (when (and (#{:change :insert} op)
-                                       (not= oldval newval))
+               (->> (diff/get-diff buildgraph*)
+                    (keep (fn [[op key oldval newval diff]]
+                            (prn op key diff)
+                            (when (not-empty diff)
                               [key newval])))
                     (into wl*))))
       [config targets])))
 
-(defn- prep
+(defn prep
   "Execute any required prep plugins / tasks."
   [config targets]
   (try

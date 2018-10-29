@@ -11,19 +11,36 @@
   entirely obviates this problem."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]})
 
+;; Things which track their diffs
 (definterface IDiffTracking
   (emptyDiff [])
   (getDiff []))
 
-(defn diff [val]
-  (if (instance? IDiffTracking val)
+;; Things which can be persuaded to track diffs
+(defprotocol AWithDiff
+  (withDiff [this]))
+
+;;; User API fns.
+
+(defn get-diff [val]
+  (if (and val (instance? IDiffTracking val))
     (.getDiff ^IDiffTracking val)
     nil))
 
 (defn without-diff [val]
-  (if (instance? IDiffTracking val)
+  (if (and val (instance? IDiffTracking val))
     (.emptyDiff ^IDiffTracking val)
     val))
+
+(extend-protocol AWithDiff
+  nil
+  (withDiff [o] o)
+  
+  java.lang.Object
+  (withDiff [o] o))
+
+(defn with-diff [val]
+  (withDiff val))
 
 (def ^:private vconj (fnil conj []))
 
@@ -51,11 +68,13 @@
   (assoc [this k v]
     (DiffingMap.
      (.assoc contents k (without-diff v))
-     (vconj diff
-            (if (contains? contents k)
-              [:change k (get contents k) v (diff v)]
-              [:insert k nil v nil]))))
-
+     (if-let [e (find contents k)]
+       ;; Assume clojure equality is faster than checking for diff :/
+       (if (= (val e) v)
+         (or diff [])
+         (vconj diff [:change k (get contents k) v (get-diff v)]))
+       [:insert k nil v nil])))
+  
   (assocEx [_ k v]
     ;; DEAD CODE
     (throw (Exception.)))
@@ -97,11 +116,15 @@
 
   clojure.lang.ILookup
   (valAt [_ k]
-    (.valAt contents k))
+    (with-diff (.valAt contents k)))
 
   (valAt [_ k not-found]
-    (.valAt contents k not-found)))
+    (with-diff (.valAt contents k not-found))))
 
 ;; FIXME (arrdem 2018-10-21):
 ;;   Implement an equivalent diff tracking vector.
 ;;   That covers most of my non-atomic use cases.
+
+(extend-protocol AWithDiff
+  clojure.lang.APersistentMap
+  (withDiff [o] (DiffingMap. o nil)))

@@ -16,8 +16,8 @@
   (s/keys* :opt-un [::rs/deps
                     ::rs/paths]))
 
-(defmethod ext/rule-prep 'clojure-library [config buildgraph target rule]
-  [config buildgraph])
+(defmethod ext/rule-prep 'clojure-library [config targets target rule]
+  [config (update-in targets [target :deps] rejvm/canonicalize-deps config)])
 
 (defmethod ext/rule-inputs 'clojure-library
   [config {:keys [targets] :as buildgraph} target rule]
@@ -26,9 +26,6 @@
   {:targets (->> (:deps rule)
                  keys
                  (filter #(contains? targets %)))})
-
-#_(defmethod ext/rule-id 'clojure-library [config buildgraph target inputs]
-    )
 
 (defmethod ext/rule-build 'clojure-library
   [config buildgraph target rule products inputs]

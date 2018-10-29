@@ -39,8 +39,8 @@
                     ::entry-point
                     ::manifest]))
 
-(defmethod ext/rule-prep 'jar [config buildgraph target rule]
-  [config buildgraph])
+(defmethod ext/rule-prep 'jar [config targets target rule]
+  [config (update-in targets [target :deps] rejvm/canonicalize-deps config)])
 
 (defmethod ext/rule-inputs 'jar
   [config {:keys [targets] :as buildgraph} target rule]
@@ -49,9 +49,6 @@
   {:targets (->> (:deps rule)
                  keys
                  (filter #(contains? targets %)))})
-
-#_(defmethod ext/rule-id 'jar [config buildgraph target inputs]
-    )
 
 (defmethod ext/rule-build 'jar
   [config buildgraph target rule products {:keys [targets] :as inputs}]
@@ -82,8 +79,8 @@
                     ::entry-point
                     ::manifest]))
 
-(defmethod ext/rule-prep 'uberjar [config buildgraph target rule]
-  [config buildgraph])
+(defmethod ext/rule-prep 'uberjar [config targets target rule]
+  [config (update-in targets [target :deps] rejvm/canonicalize-deps config)])
 
 (defmethod ext/rule-inputs 'uberjar
   [config {:keys [targets] :as buildgraph} target rule]

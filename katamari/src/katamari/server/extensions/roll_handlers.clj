@@ -20,6 +20,7 @@
             [katamari.roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
             [katamari.roll.cache :as cache]
             [katamari.deps.extensions.roll :as der]
+            [katamari.roll.extensions.jvm :as rejvm]            
             [katamari.server.extensions :refer [defhandler defwrapper]]
 
             ;; Ring
@@ -40,14 +41,37 @@
                           update (:repo-root config)
                           #(or (and % (refresh-buildgraph-for-changes config %))
                                (compute-buildgraph config)))
-                   (:repo-root config))]
+                   (:repo-root config))
+        [config targets] (roll/prep config (:targets graph))]
     (handler (assoc config
-                    :buildgraph graph
+                    :buildgraph graph #_(assoc graph :targets targets)
                     :buildcache (cache/->buildcache
                                  (fs/file (:repo-root config)
                                           (:server-work-dir config)
                                           (:server-build-cache config))))
              stack request)))
+
+(defwrapper wrap-deps-defaults
+  [handler config stack request]
+  (let [{:keys [repo-root
+                deps-defaults-file
+                deps-defaults-data
+                deps-resolve-file]} config
+        deps (cond-> {:aliases
+                      {::rejvm/roll
+                       (deps-parser/parse-config
+                        (slurp
+                         (fs/file repo-root deps-resolve-file)))}}
+
+               ;; defaults file
+               (not-empty deps-defaults-file)
+               (rejvm/merge-deps (reader/read-deps
+                                  [(fs/file repo-root deps-defaults-file)]))
+
+               ;; defaults data
+               (not-empty deps-defaults-data)
+               (rejvm/merge-deps (deps-parser/parse-config deps-defaults-data)))]
+    (handler (assoc config :deps deps) stack request)))
 
 (defhandler compile
   "Compile specified target(s), producing any outputs.
