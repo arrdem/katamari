@@ -2,6 +2,7 @@
   "The API by which to execute rolling."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
+            [clojure.tools.logging :as log]
             [me.raynes.fs :as fs]
             [katamari.diff :as diff]
             [katamari.roll.cache :as cache]
@@ -187,18 +188,19 @@
                                          [key (mapv #(get products %) targets)]))
                                   (rule-inputs config buildgraph target rule))
                     id (rule-id config buildgraph target rule products inputs)
-                    _ (printf "roll] Building %s@%s\n" target id)
+                    _ (log/infof "Building %s@%s\n" target id)
                     product (if-let [cached-product (cache/get-product cache id)]
-                              (do (printf "roll] Hit the product cache!\n")
+                              (do (log/debugf "Hit the product cache!\n")
                                   cached-product)
                               ;; Fill the cache
-                              (do (printf "roll] Missed the cache, filling\n")
+                              (do (log/infof "Missed the cache, filling\n")
                                   (let [dir (cache/get-workdir cache id)
-                                        product (-> (fs/with-cwd dir
-                                                      (rule-build config buildgraph
+                                        _ (log/infof "Trying to build in workdir %s" dir)
+                                        product (fs/with-cwd dir
+                                                  (-> (rule-build config buildgraph
                                                                   target rule
-                                                                  products inputs))
-                                                    (assoc :id id))]
+                                                                  products inputs)
+                                                      (assoc :id id)))]
                                     (cache/put-product cache id product)
                                     product)))]
                 (assoc products
