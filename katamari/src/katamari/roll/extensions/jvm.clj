@@ -134,8 +134,6 @@
                            (into [:dir fs/*cwd*])))
             res (apply sh/sh cmd)]
 
-        ;; FIXME (arrdem 2018-10-28):
-        ;;   Capture failures!
         (when (zero? (:exit res))
           (throw (ex-info "Failed to javac"
                           (assoc res
