@@ -4,7 +4,7 @@
   (:require [clojure.string :as str]
             [katamari.server.extensions :refer [defwrapper]]
             [ring.util.response :as resp]
-            [clj-fuzzy.metrics :as fuz]))
+            [clj-fuzzy.jaro-winkler :refer [jaro]]))
 
 (defwrapper wrap-not-found
   [handler config stack request]
@@ -16,7 +16,7 @@
             word (.replaceAll (first request) "-" "")
             candidates (->> meta
                             (map :kat/task-name)
-                            (sort-by #(fuz/jaro word (.replaceAll % "-" ""))
+                            (sort-by #(jaro word (.replaceAll % "-" ""))
                                      #(> %1 %2))
                             (take 3))]
         (-> {:intent :msg
