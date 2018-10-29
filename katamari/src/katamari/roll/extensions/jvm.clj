@@ -114,30 +114,37 @@
    products
    inputs]
 
-  (fs/with-cwd (:repo-root config)
-    (let [source-files (->> (map (partial fs/file) paths)
-                            (mapcat file-seq)
-                            (filter #(.isFile %))
-                            (map #(.getCanonicalPath %)))
-          dest-dir fs/*cwd*]
+  (let [source-files (->> (map (partial fs/file) paths)
+                          (mapcat file-seq)
+                          (filter #(do (prn %)
+                                       (.isFile %)))
+                          (map #(.getCanonicalPath %)))
+        dest-dir (.getCanonicalPath fs/*cwd*)]
+    ;; FIXME (arrdem 2018-10-21):
+    ;;   Capture the exit results! at all! nicely for extra credit.
+    (when source-files
+      (let [cp (make-classpath config products
+                               {:deps (:deps target)})
+            cmd (cond-> ["javac"]
+                  (:classpath cp) (into ["-cp" (:classpath cp)])
+                  source-version (into ["-source" source-version])
+                  target-version (into ["-target" target-version])
+                  true (-> (into ["-d" dest-dir])
+                           (into source-files)
+                           (into [:dir fs/*cwd*])))
+            res (apply sh/sh cmd)]
 
-      ;; FIXME (arrdem 2018-10-21):
-      ;;   Capture the exit results! at all! nicely for extra credit.
-      (when source-files
-        (let [cp (make-classpath config products
-                                 {:deps (:deps target)})
-              cmd (cond-> ["javac"]
-                    (:classpath cp) (into ["-cp" (:classpath cp)])
-                    source-version (into ["-source" source-version])
-                    target-version (into ["-target" target-version])
-                    true (-> (into ["-d" dest-dir])
-                             (into source-files)))]
-          ;; FIXME (arrdem 2018-10-28):
-          ;;   Capture failures!
-          (apply sh/sh cmd)))
+        ;; FIXME (arrdem 2018-10-28):
+        ;;   Capture failures!
+        (when (zero? (:exit res))
+          (throw (ex-info "Failed to javac"
+                          (assoc res
+                                 :target target
+                                 :rule rule
+                                 :command cmd))))))
 
-      {:type ::product
-       :from target
-       :mvn/manifest :roll
-       :deps (:deps rule {})
-       :paths [dest-dir]})))
+    {:type ::product
+     :from target
+     :mvn/manifest :roll
+     :deps (:deps rule {})
+     :paths [dest-dir]}))
