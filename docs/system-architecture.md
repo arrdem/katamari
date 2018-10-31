@@ -79,7 +79,7 @@ The handler (and wrapper) contract is that they accept the `[handler, config, st
 
 The `show-request` task is pretty typical -
 
-`clj
+```clj
 (defhandler show-request
   "Show the request and config context as seen by the server (for debugging)"
   [handler config stack request]
