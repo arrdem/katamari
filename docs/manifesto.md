@@ -29,7 +29,7 @@ The unfortunate thing is that in its focus on the classpath as the essential uni
 The tacit official recomendation for deploying `deps.edn` seems to be to `Makefile` or otherwise shell script `deps.edn` which solves one problem together with whatever else you may need.
 `deps.edn` is no help for these tasks.
 
-Katamari's design is less aescedic in its minimalism.
+Katamari's design is less ascetic in its minimalism.
 The reality is that users' workflows between the REPL, running stand-alone tests and producing artifacts are related and benefit from integration as they depend fundimentally on the same dependency data.
 Maintaining simplicity isn't easy when trying to solve these problems, but solutions are more generally useful and impose less upon their users to pick up the pieces.
 
