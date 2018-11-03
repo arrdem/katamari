@@ -1,7 +1,7 @@
-(ns katamari.roll.extensions.defaults
+(ns roll.extensions.defaults
   "Sane-ish default implementations of the roll extensions API."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
-  (:require [katamari.roll.extensions :as ext]
+  (:require [roll.extensions :as ext]
             [me.raynes.fs :as fs]
             [hasch.core :as hasch]
             [pandect.algo.sha256 :refer [sha256-file]]))

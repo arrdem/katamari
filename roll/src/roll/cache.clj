@@ -1,4 +1,4 @@
-(ns katamari.roll.cache
+(ns roll.cache
   "Provides a pseudo-tempdir cache tree.
 
   Used to provide a somewhat content addressable store of build products by

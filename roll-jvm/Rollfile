@@ -1,0 +1,12 @@
+;; -*- mode: clojure; -*-
+
+(deftarget me.arrdem/roll-jvm
+  (clojure-library
+   :paths ["src"]
+   :deps {org.clojure/clojure nil
+          org.clojure/tools.deps.alpha nil
+          org.clojure/clojure-tools nil
+
+          me.arrdem/roll nil
+
+          seancorfield/depstar nil}))

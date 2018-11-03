@@ -1,5 +1,5 @@
-(ns katamari.roll.specs
-  "Specs used by `katamari.roll.reader` to parse Rollfiles and define the API."
+(ns roll.specs
+  "Specs used by `roll.reader` to parse Rollfiles and define the API."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
             [clojure.tools.deps.alpha.specs :as tds]

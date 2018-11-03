@@ -1,0 +1,17 @@
+;; -*- mode: clojure; -*-
+
+(deftarget me.arrdem/roll
+  (clojure-library
+   :paths ["src"]
+   :deps {;; "std" lib
+          org.clojure/clojure nil
+          org.clojure/tools.logging nil
+          org.clojure/tools.deps.alpha nil
+
+          ;; 1stparty
+          me.arrdem/maxwell nil
+
+          ;; 3rdparty
+          io.replikativ/hasch nil
+          pandect/pandect nil
+          me.raynes/fs nil}))

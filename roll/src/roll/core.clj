@@ -1,13 +1,13 @@
-(ns katamari.roll.core
+(ns roll.core
   "The API by which to execute rolling."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
             [clojure.tools.logging :as log]
             [me.raynes.fs :as fs]
             [maxwell.daemon :as diff]
-            [katamari.roll.cache :as cache]
-            [katamari.roll.specs :as rs]
-            [katamari.roll.extensions :refer :all]))
+            [roll.cache :as cache]
+            [roll.specs :as rs]
+            [roll.extensions :refer :all]))
 
 (defn- prep-manifests
   "Execute any required manifest prep.

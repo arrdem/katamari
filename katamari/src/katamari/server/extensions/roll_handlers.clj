@@ -1,31 +1,16 @@
 (ns katamari.server.extensions.roll-handlers
   "Katamari tasks for working with the build graph."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
-  (:require [clojure.string :as str]
-            [clojure.edn :as edn]
-            [clojure.java.io :as jio]
-            [clojure.java.shell :as jsh]
-            [clojure.set :refer [rename-keys]]
-            [me.raynes.fs :as fs]
-
-            ;; Deps
-            [clojure.tools.deps.alpha :as deps]
-            [clojure.tools.deps.alpha.reader :as reader]
-            [clojure.tools.deps.alpha.util.io :as io :refer [printerrln]]
-            [clojure.tools.deps.alpha.script.make-classpath :as mkcp]
-            [clojure.tools.deps.alpha.script.parse :as deps-parser]
+  (:require [me.raynes.fs :as fs]
 
             ;; Katamari
-            [katamari.roll.core :as roll]
-            [katamari.roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
-            [katamari.roll.cache :as cache]
-            [katamari.deps.extensions.roll :as der]
+            [roll.core :as roll]
+            [roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
+            [roll.cache :as cache]
             [katamari.server.extensions :refer [defhandler defwrapper]]
 
             ;; Ring
-            [ring.util.response :as resp]
-
-            [hf.depstar.uberjar :as ds])
+            [ring.util.response :as resp])
   (:import [java.nio.file Files]
            [java.nio.file.attribute FileAttribute]))
 

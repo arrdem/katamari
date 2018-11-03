@@ -1,10 +1,10 @@
-(ns katamari.roll.extensions.clj
+(ns roll.extensions.clj
   "A definition of `clojure-library`."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
-            [katamari.roll.specs :as rs]
-            [katamari.roll.extensions :as ext]
-            [katamari.roll.extensions.jvm :as rejvm]))
+            [roll.specs :as rs]
+            [roll.extensions :as ext]
+            [roll.extensions.jvm :as rejvm]))
 
 ;;;; Clojure library
 
