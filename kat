@@ -116,10 +116,10 @@ server_extensions=[
   katamari.server.extensions.core-handlers
   katamari.server.extensions.fuzzy-not-found
   katamari.server.extensions.roll-handlers
-  katamari.roll.extensions.defaults
-  katamari.roll.extensions.jvm
-  katamari.roll.extensions.clj
-  katamari.roll.extensions.jar
+  roll.extensions.defaults
+  roll.extensions.jvm
+  roll.extensions.clj
+  roll.extensions.jar
 ]
 
 ### tools.deps
