@@ -1,21 +1,9 @@
 (ns katamari.server.extensions.repl-handler
   "Katamari's Clojure REPL task."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
-  (:require [clojure.tools.logging :as log]
-            [me.raynes.fs :as fs]
-
-            ;; Katamari
-            [roll.core :as roll]
-            [roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
-            [roll.cache :as cache]
-            [katamari.server.extensions :refer [defhandler defwrapper]]
+  (:require [katamari.server.extensions :refer [defhandler defwrapper]]
             [roll.extensions.jvm :as rejvm]
-
-            ;; Ring
-            [ring.util.response :as resp])
-  (:import [java.nio.file Files]
-           [java.nio.file.attribute FileAttribute]))
-
+            [ring.util.response :as resp]))
 
 (defhandler repl
   "Run a REPL in a classpath with the selected target(s)
@@ -44,9 +32,6 @@ Clojure repl in that classpath."
                 (rejvm/make-classpath config
                                       products
                                       deps)]
-            (log/info deps)
-            (log/info products)
-            (log/info classpath)
             (-> {:intent :exec
                  :exec (format "${JAVA_CMD} -cp %s clojure.main" classpath)}
               (resp/response)
