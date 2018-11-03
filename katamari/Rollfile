@@ -10,6 +10,7 @@
    {org.clojure/clojure nil
     org.clojure/tools.deps.alpha nil
     org.clojure/clojure-tools nil
+    me.arrdem/maxwell nil
 
     ;; The logging swamp
     org.clojure/tools.logging nil
