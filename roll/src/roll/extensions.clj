@@ -1,10 +1,10 @@
-(ns katamari.roll.extensions
+(ns roll.extensions
   "The API by which to implement targets and participate in rolling."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.spec.alpha :as s]
             [clojure.tools.logging :as log]
             [clojure.tools.deps.alpha.extensions :refer [coord-type]]
-            [katamari.roll.specs :as rs]))
+            [roll.specs :as rs]))
 
 ;;; Manifests
 
@@ -31,8 +31,8 @@
            ::s/invalid))))))
 
 (s/fdef rule-manifest
-  :args (s/cat :_ :katamari.roll.specs/rule)
-  :ret :katamari.roll.specs/manifest)
+  :args (s/cat :_ :roll.specs/rule)
+  :ret :roll.specs/manifest)
 
 (defn rule-manifest
   "Return a rule's manifest.
@@ -54,8 +54,8 @@
 
 (s/fdef manifest-prep
   :args (s/cat :conf any?
-               :graph :katamari.roll.specs/buildgraph
-               :manifest :katamari.roll.specs/manifest))
+               :graph :roll.specs/buildgraph
+               :manifest :roll.specs/manifest))
 
 (defmulti
   ^{:arglists '([config buildgraph manifest])
@@ -74,8 +74,8 @@ in the filesystem or on the path."}
 
 (s/fdef rule-prep
   :args (s/cat :conf any?
-               :graph :katamari.roll.specs/buildgraph
-               :target :katamari.roll.specs/target))
+               :graph :roll.specs/buildgraph
+               :target :roll.specs/target))
 
 (defmulti
   ^{:arglists '([config buildgraph target rule])

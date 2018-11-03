@@ -1,4 +1,4 @@
-(ns katamari.roll.extensions.jvm
+(ns roll.extensions.jvm
   "A definition of `java-library`."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.java.shell :as sh]
@@ -6,14 +6,14 @@
             [clojure.spec.alpha :as s]
 
             ;; kat
-            [katamari.roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
-            [katamari.roll.specs :as rs]
-            [katamari.roll.extensions :as ext]
-            [katamari.deps.extensions.roll :as der]
+            [roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
+            [roll.specs :as rs]
+            [roll.extensions :as ext]
 
             ;; deps
             [clojure.tools.deps.alpha :as deps]
             [clojure.tools.deps.alpha.reader :as reader]
+            [clojure.tools.deps.alpha.extensions :as deps.ext]
             [clojure.tools.deps.alpha.util.io :as io :refer [printerrln]]
             [clojure.tools.deps.alpha.script.make-classpath :as mkcp]
             [clojure.tools.deps.alpha.script.parse :as deps-parser]
@@ -24,6 +24,28 @@
            [java.nio.file.attribute FileAttribute]))
 
 ;;;; Interacting with deps
+
+;;; Injecting roll based deps into the deps map.
+
+(defmethod deps.ext/dep-id :roll
+  [lib coord config]
+  ;; FIXME (reid.mckenzie 2018-11-02):
+  ;;   er.
+  nil)
+
+(defmethod deps.ext/manifest-type :roll
+  [lib coord config]
+  {:deps/manifest :roll})
+
+(defmethod deps.ext/coord-deps :roll
+  [lib {:keys [deps] :as coord} manifest config]
+  deps)
+
+(defmethod deps.ext/coord-paths :roll
+  [lib {:keys [paths] :as coord} _manifest  _config]
+  paths)
+
+;;; Building a deps map for the roll graph
 
 (defn products->default-deps [products]
   (->> products

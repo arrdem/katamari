@@ -1,13 +1,13 @@
-(ns katamari.roll.extensions.jar
+(ns roll.extensions.jar
   "A definition of `jar` based on `depstar`."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.string :as str]
             [clojure.spec.alpha :as s]
             [me.raynes.fs :as fs]
             [hf.depstar.uberjar :as ds]
-            [katamari.roll.specs :as rs]
-            [katamari.roll.extensions :as ext]
-            [katamari.roll.extensions.jvm :as rejvm])
+            [roll.specs :as rs]
+            [roll.extensions :as ext]
+            [roll.extensions.jvm :as rejvm])
   (:import [java.nio.file Files]
            [java.nio.file.attribute FileAttribute]))
 

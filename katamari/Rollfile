@@ -8,9 +8,13 @@
 
    :deps
    {org.clojure/clojure nil
-    org.clojure/tools.deps.alpha nil
-    org.clojure/clojure-tools nil
+
+    ;; Maxwell
     me.arrdem/maxwell nil
+
+    ;; The rolling subsystem
+    me.arrdem/roll nil
+    me.arrdem/roll-jvm nil
 
     ;; The logging swamp
     org.clojure/tools.logging nil
@@ -23,12 +27,8 @@
     compojure/compojure nil
     cheshire/cheshire nil
 
-    seancorfield/depstar nil
-    pandect/pandect nil
     instaparse/instaparse nil
     clj-fuzzy nil
-    io.replikativ/hasch nil
-    com.taoensso/nippy nil
 
     ;; Embedded development
     nrepl/nrepl nil
@@ -36,10 +36,19 @@
 
 (deftarget me.arrdem/katamari+src-jar
   (jar
-   :deps {me.arrdem/katamari nil}
-   :jar-name "katamari.jar"))
+   :jar-name "katamari.jar"
+   :deps
+   {;; Maxwell
+    me.arrdem/maxwell nil
+
+    ;; The rolling subsystem
+    me.arrdem/roll nil
+    me.arrdem/roll-jvm nil
+
+    me.arrdem/katamari nil}))
 
 (deftarget me.arrdem/katamari+uberjar
   (uberjar
-   :deps {me.arrdem/katamari nil}
-   :jar-name "katamari-standalone.jar"))
+   :jar-name "katamari-standalone.jar"
+   :deps
+   {me.arrdem/katamari nil}))
