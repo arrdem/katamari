@@ -42,14 +42,7 @@
 
 (def ^:private vconj (fnil conj []))
 
-;; A type which tracks inserts/updates/deletes
-;;
-;; Ideally this would be baked into Clojure's collection libs as metadata, but
-;; that tracing has nonzero cost and :shrug:
-;;
-;; This implementation strikes a compromise by recursively subsuming all the
-;; diffs of updated child structures into the parent structure. This lets
-;; inserting, deleting and clearing diff data remain constant cost.
+;;;; A change tracking map
 
 (deftype DiffingMap [^clojure.lang.IPersistentMap contents
                      ^clojure.lang.IPersistentVector diff]
@@ -128,6 +121,8 @@
   clojure.lang.IPersistentMap
   (with-diff [e]
     (DiffingMap. e nil)))
+
+;;;; A change tracking vector
 
 (deftype DiffingVector [^clojure.lang.IPersistentVector contents
                         ^clojure.lang.IPersistentVector diff]
