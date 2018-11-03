@@ -42,8 +42,6 @@ Usage:
 
 Causes the specified targets to be compiled.
 
-At present, makes no attempt to compile only invalidated targets.
-
 Produces a map from target identifiers to build products."
   [handler config stack request]
   (case (first request)
@@ -51,7 +49,7 @@ Produces a map from target identifiers to build products."
     (if-let [targets (map symbol (rest request))]
       (-> (roll/roll config (:buildcache config) (:buildgraph config) targets)
           (assoc :intent :json)
-          resp/response
+          (resp/response)
           (resp/status 200))
 
       (-> {:intent :msg
@@ -66,7 +64,7 @@ Produces a map from target identifiers to build products."
   [handler config stack request]
   (-> {:intent :json
        :targets (-> config :buildgraph :targets keys)}
-      resp/response
+      (resp/response)
       (resp/status 200)))
 
 (defhandler clean-cache
@@ -75,7 +73,7 @@ Produces a map from target identifiers to build products."
 Usage:
   ./kat clean-cache [ttl-ms]
 
-Removes cache entries older than the specified number of milliseconds,
+Removes roll cache entries older than the specified number of milliseconds,
 defaulting to the server's configured cache TTL."
   [handler config stack request]
   (case (first request)
@@ -91,5 +89,5 @@ defaulting to the server's configured cache TTL."
 
       (-> {:intent :msg
            :msg "No TTL provided!"}
-          resp/response
+          (resp/response)
           (resp/status 400)))))

@@ -1,5 +1,5 @@
 (ns roll.extensions.jar
-  "A definition of `jar` based on `depstar`."
+  "A definition of `jar` and `uberjar` based on `depstar`."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.string :as str]
             [clojure.spec.alpha :as s]
@@ -67,10 +67,6 @@
      {:type ::product
       :from target
       :mvn/manifest :roll
-      ;; FIXME (reid.mckenzie 2018-10-24):
-      ;;   Better keyings?
-      #_#_:classpath classpath
-      #_#_:lib-map lib-map
       :paths [canonical-path]}
      (select-keys rule [:deps]))))
 
@@ -117,9 +113,5 @@
      {:type ::product
       :from target
       :mvn/manifest :roll
-      ;; FIXME (reid.mckenzie 2018-10-24):
-      ;;   Better keyings?
-      #_#_:classpath classpath
-      #_#_:lib-map lib-map
       :paths [canonical-path]}
      (select-keys rule [:deps]))))

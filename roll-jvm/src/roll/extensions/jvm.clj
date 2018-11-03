@@ -66,6 +66,7 @@
                        :as config}
                       products
                       deps]
+  {:pre [(contains? deps :deps)]}
   (let [deps (cond-> (-> deps
                          ;; Inject the defaults "profile"
                          (assoc-in [:aliases ::roll]

@@ -33,8 +33,8 @@
 (defmethod ext/rule-build 'clojure-library
   [config buildgraph target rule products inputs]
 
-  (let [{:keys [classpath lib-map]}
-        (rejvm/make-classpath config products
+  (let [#_{:keys [classpath lib-map]}
+        #_(rejvm/make-classpath config products
                               {:deps (:deps rule)})]
 
     (merge

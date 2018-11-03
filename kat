@@ -112,14 +112,15 @@ server_extensions=[
   clojure.tools.deps.alpha.extensions.git
   clojure.tools.deps.alpha.extensions.deps
   clojure.tools.deps.alpha.extensions.pom
-  katamari.server.extensions.cheshire
-  katamari.server.extensions.core-handlers
-  katamari.server.extensions.fuzzy-not-found
-  katamari.server.extensions.roll-handlers
   roll.extensions.defaults
   roll.extensions.jvm
   roll.extensions.clj
   roll.extensions.jar
+  katamari.server.extensions.cheshire
+  katamari.server.extensions.core-handlers
+  katamari.server.extensions.fuzzy-not-found
+  katamari.server.extensions.roll-handlers
+  katamari.server.extensions.repl-handler
 ]
 
 ### tools.deps
@@ -334,8 +335,9 @@ EOF
             exec)
                 echo "Attempting to exec..." >&2
                 cat "${out_file}" >&2
+                cmd=$(jq -r .exec < "${out_file}")
                 echo
-                exec $(jq -r .exec < "${out_file}")
+                eval "exec $cmd"
                 break
                 ;;
 
