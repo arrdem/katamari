@@ -4,7 +4,7 @@
   (:require [clojure.spec.alpha :as s]
             [clojure.tools.logging :as log]
             [me.raynes.fs :as fs]
-            [katamari.diff :as diff]
+            [maxwell.daemon :as diff]
             [katamari.roll.cache :as cache]
             [katamari.roll.specs :as rs]
             [katamari.roll.extensions :refer :all]))
@@ -29,7 +29,7 @@
             [config* buildgraph*]
             (try
               (let [[c b] (manifest-prep config targets manifest)]
-                (when-not (instance? katamari.diff.DiffingMap b)
+                (when-not (instance? maxwell.daemon.DiffingMap b)
                   (throw (IllegalStateException.
                           "Manifest initialization discarded diff info!")))
                 [c b])
@@ -39,7 +39,7 @@
                                 e))))]
         (recur config*
                (diff/without-diff buildgraph*)
-               (->> (diff/diff buildgraph*)
+               (->> (diff/get-diff buildgraph*)
                     (keep (fn [[op _ oldval newval]]
                             (when (and (#{:change :insert} op)
                                        (not= oldval newval))
@@ -65,7 +65,7 @@
       (let [[config* buildgraph*]
             (try
               (let [[c b] (rule-prep config targets target rule)]
-                (when-not (instance? katamari.diff.DiffingMap b)
+                (when-not (instance? maxwell.daemon.DiffingMap b)
                   (throw (IllegalStateException.
                           "Rule initialization discarded diff info!")))
                 [c b])
@@ -76,7 +76,7 @@
                                 e))))]
         (recur config*
                (diff/without-diff buildgraph*)
-               (->> (diff/diff buildgraph*)
+               (->> (diff/get-diff buildgraph*)
                     (keep (fn [[op key oldval newval]]
                             (when (and (#{:change :insert} op)
                                        (not= oldval newval))

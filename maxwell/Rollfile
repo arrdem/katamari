@@ -1,0 +1,6 @@
+;; -*- mode: clojure; -*-
+
+(deftarget me.arrdem/maxwell
+  (clojure-library
+   :paths ["src"]
+   :deps {org.clojure/clojure nil}))
