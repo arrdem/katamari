@@ -51,9 +51,6 @@
 ;; diffs of updated child structures into the parent structure. This lets
 ;; inserting, deleting and clearing diff data remain constant cost.
 
-;; FIXME (arrdem 2018-10-21):
-;;   When getting values out, they should be shimmed to do diff tracking.
-
 (deftype DiffingMap [^clojure.lang.IPersistentMap contents
                      ^clojure.lang.IPersistentVector diff]
   IDiffTracking
@@ -131,10 +128,6 @@
   clojure.lang.IPersistentMap
   (with-diff [e]
     (DiffingMap. e nil)))
-
-;; FIXME (arrdem 2018-10-21):
-;;   Implement an equivalent diff tracking vector.
-;;   That covers most of my non-atomic use cases.
 
 (deftype DiffingVector [^clojure.lang.IPersistentVector contents
                         ^clojure.lang.IPersistentVector diff]
