@@ -103,8 +103,8 @@ Usage:
     "plan"
     (if-let [targets (map symbol (rest request))]
       (-> (zipmap
-           [:config :targets :plan]
-           (roll/plan config
+           [:config :buildgraph :plan]
+           (roll/plan (dissoc config :buildgraph)
                       (or (:buildgraph config)
                           (throw (ex-info "No buildgraph!" {})))
                       targets))
