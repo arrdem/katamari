@@ -223,9 +223,6 @@ function _ping_server() {
 
 # Start the server and wait for it to come back
 function _start_server() {
-    # Ensure the work dir
-    mkdir -p "${KAT_REPO_ROOT}/${KAT_SERVER_WORK_DIR}"
-
     # FIXME (arrdem 2018-09-29):
     #   Should be possible to time how long it takes the server to become available.
 
