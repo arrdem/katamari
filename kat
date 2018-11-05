@@ -325,18 +325,22 @@ EOF
                 ;;
 
             sh|subshell)
-                echo "Attempting to subshell..." >&2
-                cat "${out_file}" >&2
-                echo
+                if [ "${KAT_VERBOSE}" = true ]; then
+                    echo "Attempting to subshell..." >&2
+                    cat "${out_file}" >&2
+                    echo
+                fi
                 jq -r .sh < "${out_file}" | bash
                 break
                 ;;
 
             exec)
-                echo "Attempting to exec..." >&2
-                cat "${out_file}" >&2
+                if [ "${KAT_VERBOSE}" = true ]; then
+                    echo "Attempting to exec..." >&2
+                    cat "${out_file}" >&2
+                    echo
+                fi
                 cmd=$(jq -r .exec < "${out_file}")
-                echo
                 eval "exec $cmd"
                 break
                 ;;
@@ -364,6 +368,9 @@ EOF
 }
 
 ## Core behavior
+if [ -z "${KAT_VERBOSE+x}" ]; then
+    KAT_VERBOSE=false
+fi
 
 while true; do
     [ -z "${1+x}" ] && break
@@ -379,6 +386,10 @@ while true; do
             ;;
         -m|--message)
             KAT_INTENT=message
+            shift
+            ;;
+        -v|--verbose)
+            KAT_VERBOSE=true
             shift
             ;;
         *)
