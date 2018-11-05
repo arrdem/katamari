@@ -9,3 +9,8 @@
              (fn [ns jsonGenerator]
                (.writeString jsonGenerator (pr-str ns))))
 
+(add-encoder java.io.File
+             (fn [f jsonGenerator]
+               (.writeString jsonGenerator
+                             (format "#file %s"
+                                     (.getAbsolutePath ^java.io.File f)))))
