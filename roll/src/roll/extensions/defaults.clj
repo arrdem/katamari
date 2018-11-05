@@ -4,7 +4,8 @@
   (:require [roll.extensions :as ext]
             [me.raynes.fs :as fs]
             [hasch.core :as hasch]
-            [pandect.algo.sha256 :refer [sha256-file]]))
+            [pandect.algo.sha256 :refer [sha256-file]])
+  (:import java.nio.file.Paths))
 
 (defmethod ext/manifest-prep :default [config buildgraph manifest]
   #_(printf "No configured prep.manifest for %s\n" manifest)
@@ -21,11 +22,19 @@
                    :rule rule
                    :manifest (ext/rule-manifest rule)})))
 
-(defmethod ext/rule-id :default [config buildgraph target rule products inputs]
-  (str (hasch/uuid [target rule inputs
-                    (into (sorted-set)
-                          (comp (map fs/file)
-                                (mapcat file-seq)
-                                (remove #(.isDirectory ^java.io.File %))
-                                (map sha256-file))
-                          (:paths rule))])))
+(defmethod ext/rule-id :default [{:keys [repo-root] :as config}
+                                 buildgraph target rule products inputs]
+  (let [root-path (.toPath (fs/file repo-root))]
+    (-> [target rule inputs
+         (into (sorted-set)
+               (comp (map fs/file)
+                     (mapcat (fn [file]
+                               (map #(vector file %)
+                                    (remove #(.isDirectory ^java.io.File %)
+                                            (file-seq file)))))
+                     (map (fn [[root file]]
+                            [(.toString (.relativize (.toPath root) (.toPath file)))
+                             (sha256-file file)])))
+               (:paths rule))]
+        (hasch/uuid)
+        (str))))
