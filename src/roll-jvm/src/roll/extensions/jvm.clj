@@ -53,12 +53,12 @@
 (defn merge-deps [& deps]
   (reader/merge-deps deps))
 
-(defn make-classpath [{:keys [::deps]
+(defn make-classpath [{init-deps ::deps
                        :as config}
                       products
                       deps]
   {:pre [(contains? deps :deps)]}
-  (let [deps (-> deps
+  (let [deps (-> (merge-deps init-deps deps)
                  ;; Inject the targets "profile"
                  (assoc-in [:aliases ::roll :override-deps]
                            (products->default-deps products)))
