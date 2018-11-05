@@ -115,9 +115,6 @@
                     ::source-version
                     ::target-version]))
 
-#_(defmethod ext/rule-prep 'java-library [config buildgraph target rule]
-    )
-
 (defmethod ext/rule-inputs 'java-library
   [config {:keys [targets] :as buildgraph} target rule]
 
