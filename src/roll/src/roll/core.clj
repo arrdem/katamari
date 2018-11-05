@@ -189,10 +189,10 @@
   supplied only that target and its dependencies.
 
   Return a mapping from built targets to their products."
-  [config cache {:keys [targets] :as buildgraph} & [targets?]]
+  [config cache buildgraph & [targets?]]
   (let [[config buildgraph plan] (plan config buildgraph targets?)]
     (reduce (fn [products target]
-              (let [rule    (get targets target)
+              (let [rule    (get-in buildgraph [:targets target])
                     inputs  (into {}
                                   (map (fn [[key targets]]
                                          [key (mapv #(get products %) targets)]))
