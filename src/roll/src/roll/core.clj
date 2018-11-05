@@ -15,12 +15,12 @@
   Diffing is used to continue initializing manifests if more manifests
   are added to the build graph while prepping other manifests. This
   should be a pathological case, but it's supported."
-  [config targets]
+  [config buildgraph]
   (loop [config config
-         targets (diff/->DiffingMap targets nil)
+         buildgraph (diff/->DiffingMap buildgraph nil)
          [manifest & wl* :as wl] (into #{}
                                        (map rule-manifest)
-                                       (vals targets))
+                                       (vals (:targets buildgraph)))
          seen #{}]
     (if (not-empty wl)
       (let [seen*
@@ -28,27 +28,32 @@
 
             [config* buildgraph*]
             (try
-              (let [[c b] (manifest-prep config targets manifest)]
+              (let [[c b] (manifest-prep config buildgraph manifest)]
                 (when-not (instance? maxwell.daemon.DiffingMap b)
                   (throw (IllegalStateException.
                           "Manifest initialization discarded diff info!")))
+
                 [c b])
               (catch Exception e
                 (throw (ex-info "Exception in roll.prep.manifest"
                                 {:manifest manifest}
                                 e))))]
         (recur config*
-               (diff/without-diff buildgraph*)
+               (diff/empty-diff buildgraph*)
                (->> (diff/get-diff buildgraph*)
-                    (keep (fn [[op _ oldval newval]]
+                    (mapcat (fn [[op key oldval newval diff]]
+                              (when (and (= key :targets)
+                                         (#{:change :insert} op)
+                                         (not= oldval newval))
+                                diff)))
+                    (keep (fn [[op key oldval newval diff]]
                             (when (and (#{:change :insert} op)
                                        (not= oldval newval))
-                              newval)))
-                    (map rule-manifest)
-                    (into wl*)
-                    (remove seen*))
+                              (rule-manifest newval))))
+                    (remove (into seen* wl*))
+                    (into wl*))
                seen*))
-      [config targets])))
+      [config buildgraph])))
 
 (defn- prep-rules
   "Execute any required rule prep.
@@ -57,14 +62,14 @@
   each rule has the opportunity to inject more `[target, rule]` pairs
   which means that prep has to continue until a fixed point is
   reached."
-  [config targets]
+  [config buildgraph]
   (loop [config config
-         targets (diff/->DiffingMap targets nil)
-         [[target rule] & wl* :as wl] targets]
+         buildgraph (diff/->DiffingMap buildgraph nil)
+         [[target rule] & wl* :as wl] (:targets buildgraph)]
     (if (not-empty wl)
       (let [[config* buildgraph*]
             (try
-              (let [[c b] (rule-prep config targets target rule)]
+              (let [[c b] (rule-prep config buildgraph target rule)]
                 (when-not (instance? maxwell.daemon.DiffingMap b)
                   (throw (IllegalStateException.
                           "Rule initialization discarded diff info!")))
@@ -75,29 +80,34 @@
                                  :manifest (rule-manifest rule)}
                                 e))))]
         (recur config*
-               (diff/without-diff buildgraph*)
+               (diff/empty-diff buildgraph*)
                (->> (diff/get-diff buildgraph*)
-                    (keep (fn [[op key oldval newval]]
+                    (mapcat (fn [[op key oldval newval diff]]
+                              (when (and (= key :targets)
+                                         (#{:change :insert} op)
+                                         (not= oldval newval))
+                                diff)))
+                    (keep (fn [[op key oldval newval diff :as d]]
                             (when (and (#{:change :insert} op)
                                        (not= oldval newval))
                               [key newval])))
                     (into wl*))))
-      [config targets])))
+      [config buildgraph])))
 
 (defn- prep
   "Execute any required prep plugins / tasks."
-  [config targets]
+  [config buildgraph]
   (try
-    (let [[config targets] (prep-manifests config targets)
+    (let [[config buildgraph] (prep-manifests config buildgraph)
           ;; FIXME (arrdem 2018-10-20):
           ;;   Does this need to be in topsort order first, or do the rules get to init?
-          [config targets] (prep-rules config targets)]
-      [config targets])
+          [config buildgraph] (prep-rules config buildgraph)]
+      [config buildgraph])
 
     (catch Exception e
       (throw (ex-info "Exception in roll.prep"
                       {:config config
-                       :buildgraph targets}
+                       :buildgraph buildgraph}
                       e)))))
 
 (defn- fix [f x]
@@ -158,9 +168,9 @@
   Prep all the manifests, rules, and builds an ordering of the targets.
 
   Returns the (potentially updated!) config and build graph, along with the plan."
-  [config {:keys [targets] :as buildgraph} & [targets?]]
-  (let [[config targets] (prep config targets)]
-    [config targets
+  [config buildgraph & [targets?]]
+  (let [[config buildgraph] (prep config buildgraph)]
+    [config buildgraph
      (try (order-buildgraph config buildgraph targets?)
           (catch Exception e
             (throw (ex-info "roll.plan" {} e))))]))
@@ -180,7 +190,7 @@
 
   Return a mapping from built targets to their products."
   [config cache {:keys [targets] :as buildgraph} & [targets?]]
-  (let [[config targets plan] (plan config buildgraph targets?)]
+  (let [[config buildgraph plan] (plan config buildgraph targets?)]
     (reduce (fn [products target]
               (let [rule    (get targets target)
                     inputs  (into {}
