@@ -91,3 +91,30 @@ defaulting to the server's configured cache TTL."
            :msg "No TTL provided!"}
           (resp/response)
           (resp/status 400)))))
+
+(defhandler plan
+  "Plan the specified target(s), showing the plan, final config and rules.
+
+Usage:
+  ./kat plan target1 target2...
+"
+  [handler config stack request]
+  (case (first request)
+    "plan"
+    (if-let [targets (map symbol (rest request))]
+      (-> (zipmap
+           [:config :targets :plan]
+           (roll/plan config
+                      (or (:buildgraph config)
+                          (throw (ex-info "No buildgraph!" {})))
+                      targets))
+          (assoc :intent :json)
+          (resp/response)
+          (resp/status 200))
+
+      (-> {:intent :msg
+           :mgs "No target provided!"}
+          resp/response
+          (resp/status 400)))
+
+    (handler config stack request)))
