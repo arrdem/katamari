@@ -66,6 +66,7 @@
                        :as config}
                       products
                       deps]
+  {:pre [(contains? deps :deps)]}
   (let [deps (cond-> (-> deps
                          ;; Inject the defaults "profile"
                          (assoc-in [:aliases ::roll]
@@ -113,9 +114,6 @@
                     ::rs/paths
                     ::source-version
                     ::target-version]))
-
-#_(defmethod ext/rule-prep 'java-library [config buildgraph target rule]
-    )
 
 (defmethod ext/rule-inputs 'java-library
   [config {:keys [targets] :as buildgraph} target rule]

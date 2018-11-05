@@ -3,7 +3,7 @@
 (deftarget org.clojure/clojure-tools
   (clojure-library
    :paths
-   ["src"]
+   ["src/main/clj"]
 
    :deps
    {org.clojure/clojure nil

@@ -1,5 +1,5 @@
 (ns roll.extensions.jar
-  "A definition of `jar` based on `depstar`."
+  "A definition of `jar` and `uberjar` based on `depstar`."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.string :as str]
             [clojure.spec.alpha :as s]
@@ -39,9 +39,6 @@
                     ::entry-point
                     ::manifest]))
 
-(defmethod ext/rule-prep 'jar [config buildgraph target rule]
-  [config buildgraph])
-
 (defmethod ext/rule-inputs 'jar
   [config {:keys [targets] :as buildgraph} target rule]
 
@@ -49,9 +46,6 @@
   {:targets (->> (:deps rule)
                  keys
                  (filter #(contains? targets %)))})
-
-#_(defmethod ext/rule-id 'jar [config buildgraph target inputs]
-    )
 
 (defmethod ext/rule-build 'jar
   [config buildgraph target rule products {:keys [targets] :as inputs}]
@@ -67,10 +61,6 @@
      {:type ::product
       :from target
       :mvn/manifest :roll
-      ;; FIXME (reid.mckenzie 2018-10-24):
-      ;;   Better keyings?
-      #_#_:classpath classpath
-      #_#_:lib-map lib-map
       :paths [canonical-path]}
      (select-keys rule [:deps]))))
 
@@ -82,9 +72,6 @@
                     ::entry-point
                     ::manifest]))
 
-(defmethod ext/rule-prep 'uberjar [config buildgraph target rule]
-  [config buildgraph])
-
 (defmethod ext/rule-inputs 'uberjar
   [config {:keys [targets] :as buildgraph} target rule]
 
@@ -92,9 +79,6 @@
   {:targets (->> (:deps rule)
                  keys
                  (filter #(contains? targets %)))})
-
-#_(defmethod ext/rule-id 'uberjar [config buildgraph target inputs]
-    )
 
 (defmethod ext/rule-build 'uberjar
   [config buildgraph target rule products inputs]
@@ -117,9 +101,5 @@
      {:type ::product
       :from target
       :mvn/manifest :roll
-      ;; FIXME (reid.mckenzie 2018-10-24):
-      ;;   Better keyings?
-      #_#_:classpath classpath
-      #_#_:lib-map lib-map
       :paths [canonical-path]}
      (select-keys rule [:deps]))))

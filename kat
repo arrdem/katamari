@@ -112,14 +112,15 @@ server_extensions=[
   clojure.tools.deps.alpha.extensions.git
   clojure.tools.deps.alpha.extensions.deps
   clojure.tools.deps.alpha.extensions.pom
-  katamari.server.extensions.cheshire
-  katamari.server.extensions.core-handlers
-  katamari.server.extensions.fuzzy-not-found
-  katamari.server.extensions.roll-handlers
   roll.extensions.defaults
   roll.extensions.jvm
   roll.extensions.clj
   roll.extensions.jar
+  katamari.server.extensions.cheshire
+  katamari.server.extensions.core-handlers
+  katamari.server.extensions.fuzzy-not-found
+  katamari.server.extensions.roll-handlers
+  katamari.server.extensions.repl-handler
 ]
 
 ### tools.deps
@@ -276,14 +277,12 @@ function _send_request() {
 
     # Slurp $@ into a JSON array so as to preserve whatever shell string wackiness
 
-    # FIXME (arrdem 2018-09-29):
-    #   Is there a way to roll this up in the JQ usage?
-    args=""
-    for e in "${@}"; do
-        if ! [ -z "$args" ]; then args="$args, "; fi
-        args+=$(echo "$e" | jq -cR .)
-    done
-    args="[$args]"
+    if [ "$#" -gt 0 ]; then
+        args=( "$@" )
+        args=$(printf '%s\0' "${args[@]}" | jq -csR 'split("\u0000")')
+    else
+        args="[]"
+    fi
 
     headers_file=`mktemp`
     out_file=`mktemp`
@@ -324,18 +323,23 @@ EOF
                 ;;
 
             sh|subshell)
-                echo "Attempting to subshell..." >&2
-                cat "${out_file}" >&2
-                echo
+                if [ "${KAT_VERBOSE}" = true ]; then
+                    echo "Attempting to subshell..." >&2
+                    cat "${out_file}" >&2
+                    echo
+                fi
                 jq -r .sh < "${out_file}" | bash
                 break
                 ;;
 
             exec)
-                echo "Attempting to exec..." >&2
-                cat "${out_file}" >&2
-                echo
-                exec $(jq -r .exec < "${out_file}")
+                if [ "${KAT_VERBOSE}" = true ]; then
+                    echo "Attempting to exec..." >&2
+                    cat "${out_file}" >&2
+                    echo
+                fi
+                cmd=$(jq -r .exec < "${out_file}")
+                eval "exec $cmd"
                 break
                 ;;
 
@@ -362,6 +366,9 @@ EOF
 }
 
 ## Core behavior
+if [ -z "${KAT_VERBOSE+x}" ]; then
+    KAT_VERBOSE=false
+fi
 
 while true; do
     [ -z "${1+x}" ] && break
@@ -377,6 +384,10 @@ while true; do
             ;;
         -m|--message)
             KAT_INTENT=message
+            shift
+            ;;
+        -v|--verbose)
+            KAT_VERBOSE=true
             shift
             ;;
         *)
