@@ -2,26 +2,20 @@
   "A definition of `java-library`."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
   (:require [clojure.java.shell :as sh]
-            [clojure.pprint :refer [pprint]]
             [clojure.spec.alpha :as s]
 
             ;; kat
-            [roll.reader :refer [compute-buildgraph refresh-buildgraph-for-changes]]
             [roll.specs :as rs]
             [roll.extensions :as ext]
 
             ;; deps
-            [clojure.tools.deps.alpha :as deps]
             [clojure.tools.deps.alpha.reader :as reader]
             [clojure.tools.deps.alpha.extensions :as deps.ext]
-            [clojure.tools.deps.alpha.util.io :as io :refer [printerrln]]
             [clojure.tools.deps.alpha.script.make-classpath :as mkcp]
             [clojure.tools.deps.alpha.script.parse :as deps-parser]
 
             ;; fs
-            [me.raynes.fs :as fs])
-  (:import [java.nio.file Files]
-           [java.nio.file.attribute FileAttribute]))
+            [me.raynes.fs :as fs]))
 
 ;;;; Interacting with deps
 
@@ -59,40 +53,77 @@
 (defn merge-deps [& deps]
   (reader/merge-deps deps))
 
-(defn make-classpath [{:keys [repo-root
-                              deps-defaults-file
-                              deps-defaults-data
-                              deps-resolve-file]
+(defn make-classpath [{init-deps ::deps
                        :as config}
                       products
                       deps]
   {:pre [(contains? deps :deps)]}
-  (let [deps (cond-> (-> deps
-                         ;; Inject the defaults "profile"
-                         (assoc-in [:aliases ::roll]
-                                   ;; FIXME (arrdem 2018-10-21):
-                                   ;;   Cache this
-                                   (deps-parser/parse-config
-                                    (slurp
-                                     (fs/file repo-root deps-resolve-file))))
-                         ;; Inject the targets "profile"
-                         (assoc-in [:aliases ::roll :override-deps]
-                                   (products->default-deps products)))
-
-               ;; defaults file
-               (not-empty deps-defaults-file)
-               (merge-deps (reader/read-deps
-                            [(fs/file repo-root deps-defaults-file)]))
-
-               ;; defaults data
-               (not-empty deps-defaults-data)
-               (merge-deps (deps-parser/parse-config deps-defaults-data)))
+  (let [deps (-> (merge-deps init-deps deps)
+                 ;; Inject the targets "profile"
+                 (assoc-in [:aliases ::roll :override-deps]
+                           (products->default-deps products)))
         opts {:aliases [::roll]}]
 
     (mkcp/create-classpath
      deps
      ;; Bolt on our two magical internal profiles
      opts)))
+
+(defn init-deps
+  [{:keys [repo-root
+           deps-defaults-file
+           deps-defaults-data
+           deps-resolve-file
+           ::deps]
+    :as config}
+   buildgraph]
+  (if-not deps
+    (let [deps (cond-> {}
+                 (not-empty deps-resolve-file)
+                 (assoc-in [:aliases ::roll]
+                           ;; FIXME (arrdem 2018-10-21):
+                           ;;   Cache this
+                           (deps-parser/parse-config
+                            (slurp
+                             (fs/file repo-root deps-resolve-file))))
+
+                 ;; defaults file
+                 (not-empty deps-defaults-file)
+                 (merge-deps (reader/read-deps
+                              [(fs/file repo-root deps-defaults-file)]))
+
+                 ;; defaults data
+                 (not-empty deps-defaults-data)
+                 (merge-deps (deps-parser/parse-config deps-defaults-data)))]
+      [(assoc config ::deps deps) buildgraph])
+    [config buildgraph]))
+
+(defn- use-dep [default-deps override-deps [lib coord]]
+  (vector lib
+          (or (get override-deps lib)
+              (if-let [n (namespace lib)]
+                (get override-deps (symbol n)))
+              coord
+              (get default-deps lib)
+              (if-let [n (namespace lib)]
+                (get default-deps (symbol n))))))
+
+(defn canonicalize-deps [{:keys [::deps] :as config} buildgraph target rule]
+  [config
+   (-> buildgraph
+       (update-in [:targets target :deps]
+                  (fn [target-deps]
+                    (when target-deps
+                      (let [{:keys [default-deps
+                                    override-deps]}
+                            (-> deps :aliases ::roll)
+
+                            target-deps*
+                            (into {}
+                                  (map (partial use-dep default-deps override-deps))
+                                  target-deps)]
+                        (if (not= target-deps* target-deps)
+                          target-deps* target-deps))))))])
 
 ;;;; Java library
 
@@ -115,6 +146,12 @@
                     ::source-version
                     ::target-version]))
 
+(defmethod ext/manifest-prep 'java-library [config buildgraph _manifest]
+  (init-deps config buildgraph))
+
+(defmethod ext/rule-prep 'java-library [config buildgraph target rule]
+  (canonicalize-deps config buildgraph target rule))
+
 (defmethod ext/rule-inputs 'java-library
   [config {:keys [targets] :as buildgraph} target rule]
 
@@ -126,8 +163,8 @@
 
 (defmethod ext/rule-build 'java-library
   [config buildgraph target
-   {:keys [paths
-           deps
+   {:keys [deps
+           paths
            source-version
            target-version]
     :as rule}
@@ -142,7 +179,8 @@
         dest-dir (.getCanonicalPath fs/*cwd*)]
     (when source-files
       (let [cp (make-classpath config products
-                               {:deps (:deps target)})
+                               {:deps (:deps target)
+                                :paths paths})
             cmd (cond-> ["javac"]
                   (:classpath cp) (into ["-cp" (:classpath cp)])
                   source-version (into ["-source" source-version])
@@ -159,8 +197,7 @@
                                  :rule rule
                                  :command cmd))))))
 
-    {:type ::product
-     :from target
+    {:from target
      :mvn/manifest :roll
      :deps (:deps rule {})
      :paths [dest-dir]}))

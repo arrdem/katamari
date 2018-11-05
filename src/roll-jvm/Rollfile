@@ -8,5 +8,6 @@
           org.clojure/clojure-tools nil
 
           me.arrdem/roll nil
+          me.arrdem/maxwell nil
 
           seancorfield/depstar nil}))

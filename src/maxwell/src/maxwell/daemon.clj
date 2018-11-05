@@ -18,7 +18,8 @@
 
 (definterface IDiffTracking
   (emptyDiff [])
-  (getDiff []))
+  (getDiff [])
+  (getContents []))
 
 (defprotocol ADiffCapable
   (with-diff [o]))
@@ -35,12 +36,15 @@
     (.getDiff ^IDiffTracking val)
     nil))
 
-(defn without-diff [val]
+(defn empty-diff [val]
   (if (instance? IDiffTracking val)
     (.emptyDiff ^IDiffTracking val)
     val))
 
-(def ^:private vconj (fnil conj []))
+(defn without-diff [val]
+  (if (instance? IDiffTracking val)
+    (.getContents ^IDiffTracking val)
+    val))
 
 ;;;; A change tracking map
 
@@ -53,18 +57,24 @@
   (emptyDiff [this]
     (DiffingMap. contents nil))
 
+  (getContents [this]
+    contents)
+
   ADiffCapable
   (with-diff [this]
     this)
 
   clojure.lang.IPersistentMap
   (assoc [this k v]
-    (DiffingMap.
-     (.assoc contents k (without-diff v))
-     (vconj diff
-            (if (contains? contents k)
-              [:change k (get contents k) v (get-diff v)]
-              [:insert k nil v nil]))))
+    (let [v+ (without-diff v)]
+      (DiffingMap.
+       (.assoc contents k v+)
+       (into (or diff [])
+             (if (contains? contents k)
+               (let [v- (get contents k)]
+                 (when-not (= v+ v-)
+                   [[:change k v- v+ (get-diff v)]]))
+               [[:insert k nil v+ nil]])))))
 
   (assocEx [_ k v]
     ;; DEAD CODE
@@ -73,9 +83,9 @@
   (without [_ k]
     (DiffingMap.
      (.without contents k)
-     (if (contains? contents k)
-       (vconj diff [:remove k (get contents k) nil nil])
-       diff)))
+     (into (or diff [])
+           (when (contains? contents k)
+             [[:remove k (get contents k) nil nil]]))))
 
   java.lang.Iterable
   (iterator [this]
@@ -102,7 +112,7 @@
     (DiffingMap. (.empty contents) nil))
 
   (equiv [_ o]
-    (.equiv contents o))
+    (.equiv contents (without-diff o)))
 
   clojure.lang.Seqable
   (seq [_]
@@ -136,15 +146,20 @@
   (emptyDiff [this]
     (DiffingVector. contents nil))
 
+  (getContents [this]
+    contents)
+
   clojure.lang.IPersistentVector
   (assoc [this k v]
-    (DiffingVector.
-     (.assoc contents k (without-diff v))
-     (vconj diff
-            (if (contains? contents k)
-              [:change k (get contents k) v (get-diff v)]
-              ;; This may be dead code for vectors?
-              [:insert k nil v nil]))))
+    (let [v+ (without-diff v)]
+      (DiffingVector.
+       (.assoc contents k v+)
+       (into (or diff [])
+             (if (contains? contents k)
+               (let [v- (get contents k)]
+                 (when-not (= v+ v-)
+                   [[:change k v- v+ (get-diff v)]]))
+               [[:insert k nil v+ nil]])))))
 
   clojure.lang.IPersistentCollection
   (count [_]
@@ -153,13 +168,14 @@
   (cons [this o]
     (DiffingVector.
      (.cons contents (without-diff o))
-     (vconj diff [:insert (count contents) nil o (get-diff o)])))
+     (into (or diff [])
+           [[:insert (count contents) nil o (get-diff o)]])))
 
   (empty [_]
     (DiffingVector. (.empty contents) nil))
 
   (equiv [_ o]
-    (.equiv contents o))
+    (.equiv contents (without-diff o)))
 
   clojure.lang.Seqable
   (seq [_]

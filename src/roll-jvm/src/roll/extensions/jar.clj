@@ -39,6 +39,12 @@
                     ::entry-point
                     ::manifest]))
 
+(defmethod ext/manifest-prep 'jar [config buildgraph _manifest]
+  (rejvm/init-deps config buildgraph))
+
+(defmethod ext/rule-prep 'jar [config buildgraph target rule]
+  (rejvm/canonicalize-deps config buildgraph target rule))
+
 (defmethod ext/rule-inputs 'jar
   [config {:keys [targets] :as buildgraph} target rule]
 
@@ -71,6 +77,12 @@
            :opt-un [::jar-name
                     ::entry-point
                     ::manifest]))
+
+(defmethod ext/manifest-prep 'uberjar [config buildgraph _manifest]
+  (rejvm/init-deps config buildgraph))
+
+(defmethod ext/rule-prep 'uberjar [config buildgraph target rule]
+  (rejvm/canonicalize-deps config buildgraph target rule))
 
 (defmethod ext/rule-inputs 'uberjar
   [config {:keys [targets] :as buildgraph} target rule]
