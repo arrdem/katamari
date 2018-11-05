@@ -277,14 +277,12 @@ function _send_request() {
 
     # Slurp $@ into a JSON array so as to preserve whatever shell string wackiness
 
-    # FIXME (arrdem 2018-09-29):
-    #   Is there a way to roll this up in the JQ usage?
-    args=""
-    for e in "${@}"; do
-        if ! [ -z "$args" ]; then args="$args, "; fi
-        args+=$(echo "$e" | jq -cR .)
-    done
-    args="[$args]"
+    if [ "$#" -gt 0 ]; then
+        args=( "$@" )
+        args=$(printf '%s\0' "${args[@]}" | jq -csR 'split("\u0000")')
+    else
+        args="[]"
+    fi
 
     headers_file=`mktemp`
     out_file=`mktemp`
