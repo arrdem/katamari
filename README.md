@@ -1,7 +1,6 @@
 # Katamari
 <img align="right" src="/etc/katamari.jpg" width=300/>
-
-[![Clojars Project](http://clojars.org/me.arrdem/katamari/latest-version.svg)](https://clojars.org/me.arrdem/katamari)
+<img aligh="left" src="https://img.shields.io/github/release/arrdem/katamari.svg" />
 
 > King of All Cosmos: We are moved to tears by the size of this thing.
 
