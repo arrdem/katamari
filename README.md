@@ -177,7 +177,8 @@ Jar manifests are dependencies which must be built and included when packing a j
 
 ## Documentation
 
-- [Demo talk](https://www.youtube.com/watch?v=ze7OI9iVCiI)
+- [Demo talk @ SF Clojure](https://www.youtube.com/watch?v=ze7OI9iVCiI)
+- [Demo talk on the Apropos Cast](https://youtu.be/e-49mgpYBe8?t=2136)
 - [Manifesto](/docs/manifesto.md)
 - [System Architecture](/docs/system-architecture.md)
 - [Build Graph & Targets](/docs/build-graph.md)
