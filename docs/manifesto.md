@@ -37,7 +37,7 @@ Also `deps` just leaves a lot on the table in terms of its caching strategy, and
 
 ## In contrast to Leiningen
 
-Lein does what I want really nicely for small projects, but its lack of caching and fundimental boot jvm, process, kill JVM architecture puts a 3-5s lower bound on any given lein operation.
+Lein does what I want really nicely for small projects, but its lack of caching and fundamental boot jvm, process, kill JVM architecture puts a 3-5s lower bound on any given lein operation.
 Checkouts don't really save you in a multi-module configuration because they still assume that you have artifacts of the same name installed and resolvable via Maven.
 This makes fully anonymous / source builds at best difficult if not impossible.
 
@@ -54,4 +54,4 @@ If you're comfortable with Groovy, it's probably the best way to go here.
 Katamari was built in large part out of what Alex Miller characterized as a "fear of XML" and in this case of Groovy.
 
 I'm a Clojure developer, working on a Clojure team none of whom have any experience with the Grade/Groovy toolchain.
-The barrier to enntry for hacking on it or adapting it to our needs is fairly vertical, whereas the core algorithms and caching strategies behind build systems are fairly well understood and not hard to impleent.
+The barrier to entry for hacking on it or adapting it to our needs is fairly vertical, whereas the core algorithms and caching strategies behind build systems are fairly well understood and not hard to impleent.
