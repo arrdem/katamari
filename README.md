@@ -182,6 +182,7 @@ Jar manifests are dependencies which must be built and included when packing a j
 - [Manifesto](/docs/manifesto.md)
 - [System Architecture](/docs/system-architecture.md)
 - [Build Graph & Targets](/docs/build-graph.md)
+- [Module & documentation index](/src)
 
 ## License
 
