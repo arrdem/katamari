@@ -67,7 +67,7 @@
      {:type ::product
       :from target
       :mvn/manifest :roll
-      :paths [canonical-path]}
+      :products [canonical-path]}
      (select-keys rule [:deps]))))
 
 ;;;; Uberjars
@@ -113,5 +113,5 @@
      {:type ::product
       :from target
       :mvn/manifest :roll
-      :paths [canonical-path]}
+      :products [canonical-path]}
      (select-keys rule [:deps]))))

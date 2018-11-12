@@ -1,7 +1,8 @@
 (ns katamari.server.extensions.roll-handlers
   "Katamari tasks for working with the build graph."
   {:authors ["Reid 'arrdem' McKenzie <me@arrdem.com>"]}
-  (:require [me.raynes.fs :as fs]
+  (:require [clojure.tools.logging :as log]
+            [me.raynes.fs :as fs]
 
             ;; Katamari
             [roll.core :as roll]
@@ -28,11 +29,34 @@
                    (:repo-root config))]
     (handler (assoc config
                     :buildgraph graph
+                    :target-dir (fs/file (:repo-root config)
+                                         (:target-dir config))
                     :buildcache (cache/->buildcache
                                  (fs/file (:repo-root config)
                                           (:server-work-dir config)
                                           (:server-build-cache config))))
              stack request)))
+
+(defn copy-products!
+  "Helper to `handle-compile`.
+
+  Copy build products to the configured target dir.
+
+  Returns the build so it fits in a `->` pipeline."
+  [config build]
+  (doseq [[_target product] build]
+    (when (and (:target-dir config)
+               (:products product))
+      (doseq [p (:products product)
+              :let [^java.io.File f (fs/file p)]]
+        (log/infof "Copying product %s to target dir" p)
+        (java.nio.file.Files/copy
+         (.toPath f)
+         (.toPath (fs/file (:target-dir config)
+                           (.getName f)))
+         (into-array java.nio.file.CopyOption
+                     [java.nio.file.StandardCopyOption/REPLACE_EXISTING])))))
+  build)
 
 (defhandler compile
   "Compile specified target(s), producing any outputs.
@@ -48,6 +72,7 @@ Produces a map from target identifiers to build products."
     "compile"
     (if-let [targets (map symbol (rest request))]
       (-> (roll/roll config (:buildcache config) (:buildgraph config) targets)
+          ((partial copy-products! config))
           (assoc :intent :json)
           (resp/response)
           (resp/status 200))
