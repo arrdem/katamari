@@ -173,8 +173,7 @@
 
   (let [source-files (->> (map (partial fs/file) paths)
                           (mapcat file-seq)
-                          (filter #(do (prn %)
-                                       (.isFile %)))
+                          (filter #(.isFile %))
                           (map #(.getCanonicalPath %)))
         dest-dir (.getCanonicalPath fs/*cwd*)]
     (when source-files
