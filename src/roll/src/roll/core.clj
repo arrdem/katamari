@@ -199,20 +199,25 @@
                                   (rule-inputs config buildgraph target rule))
                     id (rule-id config buildgraph target rule products inputs)
                     _ (log/infof "Building %s@%s\n" target id)
-                    product (if-let [cached-product (cache/get-product cache id)]
-                              (do (log/debugf "Hit the product cache!\n")
-                                  cached-product)
-                              ;; Fill the cache
-                              (do (log/infof "Missed the cache, filling\n")
-                                  (let [dir (cache/get-workdir cache id)
-                                        _ (log/infof "Trying to build in workdir %s" dir)
-                                        product (fs/with-cwd dir
-                                                  (-> (rule-build config buildgraph
-                                                                  target rule
-                                                                  products inputs)
-                                                      (assoc :id id)))]
-                                    (cache/put-product cache id product)
-                                    product)))]
+                    product (try
+                              (if-let [cached-product (cache/get-product cache id)]
+                                (do (log/debugf "Hit the product cache!\n")
+                                    cached-product)
+                                ;; Fill the cache
+                                (do (log/infof "Missed the cache, filling\n")
+                                    (let [dir (cache/get-workdir cache id)
+                                          _ (log/infof "Trying to build in workdir %s" dir)
+                                          product (fs/with-cwd dir
+                                                    (-> (rule-build config buildgraph
+                                                                    target rule
+                                                                    products inputs)
+                                                        (assoc :id id)))]
+                                      (cache/put-product cache id product)
+                                      product)))
+                              (catch Exception e
+                                ;; Kill the cache entry
+                                (cache/delete-product cache id)
+                                (throw e)))]
                 (assoc products
                        target product)))
             {} (apply concat plan))))

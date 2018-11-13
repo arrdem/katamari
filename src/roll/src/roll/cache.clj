@@ -117,3 +117,14 @@
           child (reverse (file-seq f))]
     (printf "Deleting file %s\n" child)
     (.delete child)))
+
+(defn delete-product
+  "Nuke a single product out of the cache.
+
+  Used for cleaning up failed builds."
+  [buildcache key]
+  (let [^java.io.File root (get-key* buildcache key)]
+    (when (and (.exists root)
+               (.isDirectory root))
+      (doseq [^java.io.File f (reverse (file-seq root))]
+        (.delete f)))))
