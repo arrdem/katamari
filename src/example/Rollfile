@@ -7,6 +7,7 @@
 (deftarget example/clj
   (clojure-library
    :paths ["src/main/clj"]
+   :aot :all
    :deps {example/javac nil
           org.clojure/clojure nil}))
 
