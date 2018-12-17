@@ -22,3 +22,10 @@
    :jar-name "clj-standalone.jar"
    :deps {example/javac nil
           example/clj nil}))
+
+(deftarget example/clj+aot
+  (clojure-binary
+   :paths []
+   :deps {example/javac nil
+          example/clj nil}
+   :aot [demo]))
