@@ -15,16 +15,9 @@
 ;;
 ;; Unless there's AOT, which this target doesn't support yet.
 
-(s/def ::aot
-  (s/or :all #{:all}
-        :nss (s/coll-of
-              (s/or :sym simple-symbol?
-                    :re  #(instance? java.util.regex.Pattern %)))))
-
 (ext/defmanifest clojure-library
   (s/keys* :opt-un [::rs/deps
-                    ::rs/paths
-                    ::aot]))
+                    ::rs/paths]))
 
 (defmethod ext/manifest-prep 'clojure-library [config buildgraph _manifest]
   (rejvm/init-deps config buildgraph))
@@ -40,10 +33,50 @@
                  keys
                  (filter #(contains? targets %)))})
 
-(defonce +e+
-  (atom nil))
-
 (defmethod ext/rule-build 'clojure-library
+[config buildgraph target {:keys [paths aot deps] :as rule} products inputs]
+(merge
+ {:from target
+  :mvn/manifest :roll}
+ (select-keys rule [:paths :deps])))
+
+;;;; Clojure binary
+
+;; Clojure's AOT is transitive - it sucks in and AOTs dependencies - so it isn't
+;; something that's really applicable to library development or deployment. It's
+;; really only useful when building a final "closed world" application, and even
+;; then has meaningful limits.
+;;
+;; Consequently, AOT isn't a feature of clojure-library, it's a separate thing
+;; so that the pure clojure-library can stand apart from the extreme complexity
+;; and strange hacks which surround Clojure AOT "for real".
+
+(s/def ::aot
+(s/or :all #{:all}
+      :nss (s/coll-of
+            (s/or :sym simple-symbol?
+                  :re  #(instance? java.util.regex.Pattern %)))))
+
+(ext/defmanifest clojure-binary
+  (s/keys :opt-un [::rs/deps
+                   ::rs/paths
+                   ::aot]))
+
+(defmethod ext/manifest-prep 'clojure-binary [config buildgraph _manifest]
+  (rejvm/init-deps config buildgraph))
+
+(defmethod ext/rule-prep 'clojure-binary [config buildgraph target rule]
+  (rejvm/canonicalize-deps config buildgraph target rule))
+
+(defmethod ext/rule-inputs 'clojure-binary
+  [config {:keys [targets] :as buildgraph} target rule]
+  
+  ;; We only need buildgraph internal targets to be built for us.
+  {:targets (->> (:deps rule)
+                 keys
+                 (filter #(contains? targets %)))})
+
+(defmethod ext/rule-build 'clojure-binary
   [config buildgraph target {:keys [paths aot deps] :as rule} products inputs]
   (when aot
     (let [{:keys [classpath]}
@@ -116,4 +149,4 @@
   {:from target
    :mvn/manifest :roll
    :deps deps
-   :paths (into paths (when aot [(.getAbsolutePath fs/*cwd*)]))})
+   :paths (conj paths (.getAbsolutePath fs/*cwd*))})
