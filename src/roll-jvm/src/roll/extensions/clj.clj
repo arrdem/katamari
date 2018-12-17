@@ -52,15 +52,15 @@
 ;; and strange hacks which surround Clojure AOT "for real".
 
 (s/def ::aot
-(s/or :all #{:all}
-      :nss (s/coll-of
-            (s/or :sym simple-symbol?
-                  :re  #(instance? java.util.regex.Pattern %)))))
+  (s/or :all #{:all}
+        :nss (s/coll-of
+              (s/or :sym simple-symbol?
+                    :re  #(instance? java.util.regex.Pattern %)))))
 
 (ext/defmanifest clojure-binary
-  (s/keys :opt-un [::rs/deps
-                   ::rs/paths
-                   ::aot]))
+  (s/keys* :opt-un [::rs/deps
+                    ::rs/paths
+                    ::aot]))
 
 (defmethod ext/manifest-prep 'clojure-binary [config buildgraph _manifest]
   (rejvm/init-deps config buildgraph))
@@ -95,20 +95,18 @@
           arm (first aot)
           aot (second aot)
 
-          libs (->> (case arm
-                      :all source-files
-
-                      :nss (into #{}
-                                 (concat (filter symbol? aot)
-                                         (mapcat (fn [rule]
-                                                   (->> source-files
-                                                        (filter #(re-find rule %))))
-                                                 aot))))
-                    (map #(-> %
-                              (str/replace #"\.clj[sxc]?$" "")
-                              (str/replace #"_" "-")
-                              (str/replace #"/" ".")
-                              symbol)))
+          libs (case arm
+                 :all (->> (if source-files
+                             source-files
+                             (throw (ex-info "Unable to compile :all with no paths!"
+                                             rule)))
+                           (map #(-> %
+                                     (str/replace #"\.clj[sxc]?$" "")
+                                     (str/replace #"_" "-")
+                                     (str/replace #"/" ".")
+                                     symbol)))
+                 
+                 :nss (mapv second aot))
 
           incantation
           (->> libs
@@ -137,7 +135,6 @@
                                 :rule rule
                                 :incantation incantation
                                 :command cmd))]
-          (reset! +e+ e)
           (throw e)))))
 
   ;; FIXME (reid.mckenzie 2018-11-12):
