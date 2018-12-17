@@ -1,5 +1,6 @@
 (ns demo
-  (:import demo.Demo))
+  (:import demo.Demo)
+  (:gen-class))
 
 (defn -main [& args]
   (println "Hit the clj main!")
