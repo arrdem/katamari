@@ -25,7 +25,5 @@
 
 (deftarget example/clj+aot
   (clojure-binary
-   :paths []
-   :deps {example/javac nil
-          example/clj nil}
+   :deps {example/clj nil}
    :aot [demo]))
